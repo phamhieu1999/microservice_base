@@ -1,0 +1,14 @@
+{
+  "name": "demo-ecommerce-microservices",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "services/*"
+  ],
+  "scripts": {
+    "lint": "echo \"no root lint\"",
+    "test": "echo \"run tests per service\""
+  }
+}
+
+

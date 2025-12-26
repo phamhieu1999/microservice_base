@@ -1,0 +1,474 @@
+version: '3.9'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+
+  postgres-auth:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_password
+      POSTGRES_DB: auth_db
+    ports:
+      - "5433:5432"
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+
+  auth-service:
+    build:
+      context: ../services/auth-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3001
+      AUTH_DB_HOST: postgres-auth
+      AUTH_DB_PORT: 5432
+      AUTH_DB_USER: auth_user
+      AUTH_DB_PASSWORD: auth_password
+      AUTH_DB_NAME: auth_db
+      KAFKA_BROKERS: kafka:9092
+      JWT_ACCESS_SECRET: access-secret
+      JWT_REFRESH_SECRET: refresh-secret
+    depends_on:
+      - postgres-auth
+      - kafka
+
+  product-service:
+    build:
+      context: ../services/product-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3002
+      PRODUCT_MONGO_URI: mongodb://mongo:27017/product_db
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      - mongo
+      - kafka
+
+  cart-service:
+    build:
+      context: ../services/cart-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3006
+      CART_MONGO_URI: mongodb://mongo:27017/cart_db
+    depends_on:
+      - mongo
+
+  review-service:
+    build:
+      context: ../services/review-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3007
+      REVIEW_MONGO_URI: mongodb://mongo:27017/review_db
+    depends_on:
+      - mongo
+
+  postgres-seller:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: seller_user
+      POSTGRES_PASSWORD: seller_password
+      POSTGRES_DB: seller_db
+    ports:
+      - "5436:5432"
+
+  seller-service:
+    build:
+      context: ../services/seller-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3008
+      SELLER_DB_HOST: postgres-seller
+      SELLER_DB_PORT: 5432
+      SELLER_DB_USER: seller_user
+      SELLER_DB_PASSWORD: seller_password
+      SELLER_DB_NAME: seller_db
+    depends_on:
+      - postgres-seller
+
+  postgres-promo:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: promo_user
+      POSTGRES_PASSWORD: promo_password
+      POSTGRES_DB: promo_db
+    ports:
+      - "5437:5432"
+
+  promotion-service:
+    build:
+      context: ../services/promotion-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3009
+      PROMO_DB_HOST: postgres-promo
+      PROMO_DB_PORT: 5432
+      PROMO_DB_USER: promo_user
+      PROMO_DB_PASSWORD: promo_password
+      PROMO_DB_NAME: promo_db
+    depends_on:
+      - postgres-promo
+
+  shipping-service:
+    build:
+      context: ../services/shipping-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3010
+    depends_on:
+      - mongo
+
+  chat-service:
+    build:
+      context: ../services/chat-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3011
+      CHAT_MONGO_URI: mongodb://mongo:27017/chat_db
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      - mongo
+      - kafka
+
+  search-service:
+    build:
+      context: ../services/search-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3012
+      SEARCH_MONGO_URI: mongodb://mongo:27017/search_db
+      KAFKA_BROKERS: kafka:9092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      USE_ELASTICSEARCH: "true"
+    depends_on:
+      - mongo
+      - kafka
+      - redis
+      - elasticsearch
+
+  postgres-order:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: order_user
+      POSTGRES_PASSWORD: order_password
+      POSTGRES_DB: order_db
+    ports:
+      - "5434:5432"
+
+  postgres-payment:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: payment_user
+      POSTGRES_PASSWORD: payment_password
+      POSTGRES_DB: payment_db
+    ports:
+      - "5435:5432"
+
+  order-service:
+    build:
+      context: ../services/order-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3003
+      ORDER_DB_HOST: postgres-order
+      ORDER_DB_PORT: 5432
+      ORDER_DB_USER: order_user
+      ORDER_DB_PASSWORD: order_password
+      ORDER_DB_NAME: order_db
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      - postgres-order
+      - kafka
+
+  payment-service:
+    build:
+      context: ../services/payment-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3004
+      PAYMENT_DB_HOST: postgres-payment
+      PAYMENT_DB_PORT: 5432
+      PAYMENT_DB_USER: payment_user
+      PAYMENT_DB_PASSWORD: payment_password
+      PAYMENT_DB_NAME: payment_db
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      - postgres-payment
+      - kafka
+
+  notification-service:
+    build:
+      context: ../services/notification-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3005
+      KAFKA_BROKERS: kafka:9092
+      NOTIFICATION_MONGO_URI: mongodb://mongo:27017/notification_db
+      JWT_ACCESS_SECRET: access-secret
+    depends_on:
+      - kafka
+      - mongo
+
+  api-gateway:
+    build:
+      context: ../services/api-gateway
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3000
+      AUTH_SERVICE_URL: http://auth-service:3001
+      PRODUCT_SERVICE_URL: http://product-service:3002
+      ORDER_SERVICE_URL: http://order-service:3003
+      CART_SERVICE_URL: http://cart-service:3006
+      REVIEW_SERVICE_URL: http://review-service:3007
+      SELLER_SERVICE_URL: http://seller-service:3008
+      PROMOTION_SERVICE_URL: http://promotion-service:3009
+      SHIPPING_SERVICE_URL: http://shipping-service:3010
+      CHAT_SERVICE_URL: http://chat-service:3011
+      SEARCH_SERVICE_URL: http://search-service:3012
+      LOYALTY_SERVICE_URL: http://loyalty-service:3015
+      WAREHOUSE_SERVICE_URL: http://warehouse-service:3018
+      NOTIFICATION_SERVICE_URL: http://notification-service:3005
+      JWT_ACCESS_SECRET: access-secret
+    depends_on:
+      - auth-service
+      - product-service
+    ports:
+      - "3000:3000"
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    depends_on:
+      - auth-service
+      - product-service
+      - order-service
+      - payment-service
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    depends_on:
+      - prometheus
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3030:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # HTTP collector
+    environment:
+      - COLLECTOR_ZIPKIN_HTTP_PORT=9411
+
+  dlq-service:
+    build:
+      context: ../services/dlq-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3013
+      DLQ_MONGO_URI: mongodb://mongo:27017/dlq_db
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      - mongo
+      - kafka
+
+  analytics-service:
+    build:
+      context: ../services/analytics-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3014
+      ANALYTICS_MONGO_URI: mongodb://mongo:27017/analytics_db
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      - mongo
+      - kafka
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    ports:
+      - "8123:8123" # HTTP interface
+      - "9000:9000" # Native protocol
+    environment:
+      CLICKHOUSE_DB: warehouse_db
+      CLICKHOUSE_USER: warehouse_user
+      CLICKHOUSE_PASSWORD: warehouse_password
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - clickhouse-logs:/var/log/clickhouse-server
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+volumes:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+  alertmanager-data:
+  elasticsearch-data:
+  clickhouse-data:
+  clickhouse-logs:
+
+  postgres-loyalty:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: loyalty_user
+      POSTGRES_PASSWORD: loyalty_password
+      POSTGRES_DB: loyalty_db
+    ports:
+      - "5438:5432"
+
+  loyalty-service:
+    build:
+      context: ../services/loyalty-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3015
+      LOYALTY_DB_HOST: postgres-loyalty
+      LOYALTY_DB_PORT: 5432
+      LOYALTY_DB_USER: loyalty_user
+      LOYALTY_DB_PASSWORD: loyalty_password
+      LOYALTY_DB_NAME: loyalty_db
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      - postgres-loyalty
+      - kafka
+
+  postgres-dispute:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: dispute_user
+      POSTGRES_PASSWORD: dispute_password
+      POSTGRES_DB: dispute_db
+    ports:
+      - "5439:5432"
+
+  dispute-service:
+    build:
+      context: ../services/dispute-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3016
+      DISPUTE_DB_HOST: postgres-dispute
+      DISPUTE_DB_PORT: 5432
+      DISPUTE_DB_USER: dispute_user
+      DISPUTE_DB_PASSWORD: dispute_password
+      DISPUTE_DB_NAME: dispute_db
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      - postgres-dispute
+      - kafka
+
+  postgres-settlement:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: settlement_user
+      POSTGRES_PASSWORD: settlement_password
+      POSTGRES_DB: settlement_db
+    ports:
+      - "5440:5432"
+
+  settlement-service:
+    build:
+      context: ../services/settlement-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3017
+      SETTLEMENT_DB_HOST: postgres-settlement
+      SETTLEMENT_DB_PORT: 5432
+      SETTLEMENT_DB_USER: settlement_user
+      SETTLEMENT_DB_PASSWORD: settlement_password
+      SETTLEMENT_DB_NAME: settlement_db
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      - postgres-settlement
+      - kafka
+
+  warehouse-service:
+    build:
+      context: ../services/warehouse-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3018
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: 8123
+      CLICKHOUSE_USER: warehouse_user
+      CLICKHOUSE_PASSWORD: warehouse_password
+      CLICKHOUSE_DB: warehouse_db
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      - clickhouse
+      - kafka

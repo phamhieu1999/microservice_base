@@ -1,0 +1,52 @@
+topics:
+  - name: order.created
+    partitions: 6
+    replication-factor: 1
+
+  - name: payment.success
+    partitions: 4
+    replication-factor: 1
+
+  - name: product.updated
+    partitions: 3
+    replication-factor: 1
+
+  - name: user.created
+    partitions: 3
+    replication-factor: 1
+
+  - name: payment.failed
+    partitions: 2
+    replication-factor: 1
+
+  - name: product.created
+    partitions: 3
+    replication-factor: 1
+
+  - name: product.low-stock
+    partitions: 2
+    replication-factor: 1
+
+  - name: dispute.opened
+    partitions: 2
+    replication-factor: 1
+
+  - name: dispute.escalated
+    partitions: 2
+    replication-factor: 1
+
+  - name: dispute.resolved
+    partitions: 2
+    replication-factor: 1
+
+  - name: settlement.balance.updated
+    partitions: 3
+    replication-factor: 1
+
+  - name: settlement.payout.requested
+    partitions: 3
+    replication-factor: 1
+
+  - name: dlq.failed-messages
+    partitions: 2
+    replication-factor: 1
