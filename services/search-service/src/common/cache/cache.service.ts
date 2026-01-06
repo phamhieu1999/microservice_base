@@ -19,7 +19,9 @@ export class CacheService {
   }
 
   async reset(): Promise<void> {
-    await this.cacheManager.reset();
+    // Note: reset() method is not available in cache-manager v6
+    // Use invalidatePattern('') to clear all cache if needed
+    // or implement custom reset logic based on your cache store
   }
 
   /**

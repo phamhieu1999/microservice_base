@@ -25,6 +25,11 @@ import { IProductRepository } from '../../domain/product/product.repository';
     FindAllProductsUseCase,
     UpdateProductUseCase,
   ],
+  exports: [
+    'IProductRepository',
+    ProductMongooseRepository,
+    ProductService,
+  ],
 })
 export class ProductModule {}
 

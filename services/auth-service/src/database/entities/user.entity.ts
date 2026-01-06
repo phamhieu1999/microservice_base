@@ -27,7 +27,7 @@ export class User {
   isLocked: boolean; // Account lockout
 
   @Column({ nullable: true })
-  lockedUntil?: Date; // Lock expiry time
+  lockedUntil?: Date | null; // Lock expiry time
 
   @Column({ nullable: true })
   oauthProvider?: string; // 'google', 'facebook', etc.

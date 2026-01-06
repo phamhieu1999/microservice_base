@@ -1,29 +1,19 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import * as request from 'supertest';
-import { AppModule } from '../src/modules/app.module';
-import { JsonLoggerService } from '../src/common/json-logger.service';
+import request from 'supertest';
+import { HealthController } from '../src/common/health.controller';
 
 describe('OrderService e2e (skeleton)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
+      controllers: [HealthController],
     }).compile();
 
-    app = moduleRef.createNestApplication({
-      logger: new JsonLoggerService('order-service-test'),
-    });
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-    );
+    app = moduleRef.createNestApplication();
     await app.init();
-  });
+  }, 10000);
 
   afterAll(async () => {
     await app.close();

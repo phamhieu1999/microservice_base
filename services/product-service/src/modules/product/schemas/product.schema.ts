@@ -4,16 +4,16 @@ import { Document } from 'mongoose';
 @Schema({ timestamps: true })
 export class Product extends Document {
   @Prop({ required: true })
-  name: string;
+  name!: string;
 
   @Prop()
   description?: string;
 
   @Prop({ required: true })
-  price: number;
+  price!: number;
 
   @Prop({ required: true })
-  stock: number;
+  stock!: number;
 
   @Prop()
   category?: string;

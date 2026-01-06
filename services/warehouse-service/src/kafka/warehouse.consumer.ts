@@ -13,19 +13,53 @@ export class WarehouseConsumer implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit() {
-    this.consumer = this.kafkaService.getConsumer('warehouse-service-group');
-    await this.consumer.connect();
+    try {
+      this.consumer = this.kafkaService.getConsumer('warehouse-service-group');
+      
+      // Test connection với retry logic
+      const maxRetries = 5;
+      let retryCount = 0;
+      let connected = false;
 
-    // Subscribe to topics
-    await this.consumer.subscribe({ topic: 'order.created', fromBeginning: false });
-    await this.consumer.subscribe({ topic: 'payment.success', fromBeginning: false });
-    await this.consumer.subscribe({ topic: 'settlement.balance.updated', fromBeginning: false });
-    await this.consumer.subscribe({ topic: 'loyalty.points.earned', fromBeginning: false });
-    await this.consumer.subscribe({ topic: 'user.created', fromBeginning: false });
-    await this.consumer.subscribe({ topic: 'product.created', fromBeginning: false });
+      while (retryCount < maxRetries && !connected) {
+        try {
+          await this.consumer.connect();
+          connected = true;
+          this.logger.log('Kafka consumer connected');
+        } catch (error) {
+          retryCount++;
+          if (retryCount < maxRetries) {
+            const backoffMs = Math.min(1000 * Math.pow(2, retryCount - 1), 10000);
+            this.logger.warn(
+              `Failed to connect Kafka consumer (attempt ${retryCount}/${maxRetries}). Retrying in ${backoffMs}ms...`,
+              error instanceof Error ? error.message : 'Unknown error'
+            );
+            await new Promise(resolve => setTimeout(resolve, backoffMs));
+          } else {
+            this.logger.error(
+              `Failed to connect Kafka consumer after ${maxRetries} attempts. Consumer will not start.`,
+              error instanceof Error ? error.message : 'Unknown error'
+            );
+            // Không throw error để service vẫn có thể khởi động
+            return;
+          }
+        }
+      }
 
-    // Start consuming với batch processing để tối ưu throughput
-    await this.consumer.run({
+      if (!connected) {
+        return;
+      }
+
+      // Subscribe to topics
+      await this.consumer.subscribe({ topic: 'order.created', fromBeginning: false });
+      await this.consumer.subscribe({ topic: 'payment.success', fromBeginning: false });
+      await this.consumer.subscribe({ topic: 'settlement.balance.updated', fromBeginning: false });
+      await this.consumer.subscribe({ topic: 'loyalty.points.earned', fromBeginning: false });
+      await this.consumer.subscribe({ topic: 'user.created', fromBeginning: false });
+      await this.consumer.subscribe({ topic: 'product.created', fromBeginning: false });
+
+      // Start consuming với batch processing để tối ưu throughput
+      await this.consumer.run({
       // Batch processing - xử lý nhiều messages cùng lúc
       eachBatch: async ({ batch, resolveOffset, heartbeat, commitOffsetsIfNecessary }) => {
         const { topic, partition, messages } = batch;
@@ -119,7 +153,14 @@ export class WarehouseConsumer implements OnModuleInit, OnModuleDestroy {
       eachBatchAutoResolve: false, // Manual offset management
     });
 
-    this.logger.log('Warehouse consumer started');
+      this.logger.log('Warehouse consumer started');
+    } catch (error) {
+      this.logger.error(
+        'Error initializing warehouse consumer',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+      // Không throw error để service vẫn có thể khởi động
+    }
   }
 
   async onModuleDestroy() {

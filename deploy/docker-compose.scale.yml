@@ -2,15 +2,15 @@
 # This file demonstrates how to scale services horizontally
 #
 # Usage:
-#   docker-compose -f docker-compose.yml -f docker-compose.scale.yml up -d
+#   docker compose -f docker-compose.yml -f docker-compose.scale.yml up -d
 #
 # Or manually scale:
-#   docker-compose up --scale api-gateway=3 --scale product-service=2
+#   docker compose up --scale api-gateway=3 --scale product-service=2
 
 version: '3.9'
 
 # Note: This is a reference file showing scaling configuration
-# In production, use docker-compose up --scale <service>=<replicas>
+# In production, use docker compose up --scale <service>=<replicas>
 
 services:
   # Example: Scale API Gateway to 3 instances

@@ -4,7 +4,7 @@ import { WarehouseModule } from './warehouse/warehouse.module';
 import { MonitoringModule } from '../monitoring/monitoring.module';
 import { HealthController } from '../common/health.controller';
 import { HealthCheckService } from '../common/health-check.service';
-import { ClickHouseService } from '../database/clickhouse.service';
+import { DatabaseModule } from '../database/database.module';
 import { KafkaModule } from '../kafka/kafka.module';
 
 @Module({
@@ -12,12 +12,13 @@ import { KafkaModule } from '../kafka/kafka.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    DatabaseModule,
     WarehouseModule,
     MonitoringModule,
     KafkaModule,
   ],
   controllers: [HealthController],
-  providers: [HealthCheckService, ClickHouseService],
+  providers: [HealthCheckService],
 })
 export class AppModule {}
 

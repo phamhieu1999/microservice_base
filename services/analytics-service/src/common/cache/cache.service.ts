@@ -19,8 +19,21 @@ export class CacheService {
   }
 
   async reset(): Promise<void> {
-    await this.cacheManager.reset();
+    if (typeof (this.cacheManager as any).reset === 'function') {
+      await (this.cacheManager as any).reset();
+    } else if (typeof (this.cacheManager as any).store?.reset === 'function') {
+      await (this.cacheManager as any).store.reset();
+    } else {
+      // fallback: try to delete all keys if keys() is available
+      if (typeof (this.cacheManager as any).keys === 'function') {
+        const keys = await (this.cacheManager as any).keys();
+        await Promise.all(keys.map((key: string) => this.cacheManager.del(key)));
+      } else {
+        throw new Error('Reset not supported by cache manager.');
+      }
+    }
   }
+
 
   /**
    * Get or set pattern - get from cache, or compute and cache

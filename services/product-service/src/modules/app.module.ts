@@ -11,7 +11,9 @@ import { HealthController } from '../common/health.controller';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    MongooseModule.forRoot(process.env.PRODUCT_MONGO_URI || 'mongodb://mongo:27017/product_db', {
+    // Default URI cho môi trường local (chạy ngoài Docker)
+    // Trong Docker, docker-compose đã override PRODUCT_MONGO_URI = mongodb://mongo:27017/product_db
+    MongooseModule.forRoot(process.env.PRODUCT_MONGO_URI || 'mongodb://localhost:27017/product_db', {
       maxPoolSize: parseInt(process.env.MONGO_POOL_MAX || '20', 10),
       minPoolSize: parseInt(process.env.MONGO_POOL_MIN || '5', 10),
       socketTimeoutMS: parseInt(process.env.MONGO_SOCKET_TIMEOUT || '45000', 10),

@@ -70,7 +70,7 @@ describe('Order Use Cases', () => {
       const result = await createOrderUseCase.execute(input);
 
       expect(repo.create).toHaveBeenCalled();
-      expect(kafka.emit).toHaveBeenCalledWith('order.created', expect.any(Object));
+      expect(kafka.emit).toHaveBeenCalledWith('order.created', expect.any(Object), undefined);
       expect(result.id).toBe('order-123');
       expect(result.totalAmount).toBe(200000);
     });
@@ -128,7 +128,7 @@ describe('Order Use Cases', () => {
 
   describe('UpdateOrderStatusUseCase', () => {
     it('should update order status successfully', async () => {
-      const order = new Order('order-123', 'user-123', 'PAID', 200000, []);
+      const order = new Order('order-123', 'user-123', 'PROCESSING', 200000, []);
 
       repo.findById.mockResolvedValue(order);
       repo.updateStatus.mockResolvedValue(undefined);

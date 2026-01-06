@@ -1,33 +1,41 @@
 import { IsString, IsNumber, IsOptional, IsUrl, Min, Max } from 'class-validator';
 
 export class AuthConfigSchema {
+  @IsOptional()
   @IsNumber()
   @Min(1)
   @Max(65535)
-  PORT: number;
+  PORT?: number;
 
+  @IsOptional()
   @IsString()
-  AUTH_DB_HOST: string;
+  AUTH_DB_HOST?: string;
 
+  @IsOptional()
   @IsNumber()
   @Min(1)
   @Max(65535)
-  AUTH_DB_PORT: number;
+  AUTH_DB_PORT?: number;
 
+  @IsOptional()
   @IsString()
-  AUTH_DB_USER: string;
+  AUTH_DB_USER?: string;
 
+  @IsOptional()
   @IsString()
-  AUTH_DB_PASSWORD: string;
+  AUTH_DB_PASSWORD?: string;
 
+  @IsOptional()
   @IsString()
-  AUTH_DB_NAME: string;
+  AUTH_DB_NAME?: string;
 
+  @IsOptional()
   @IsString()
-  JWT_ACCESS_SECRET: string;
+  JWT_ACCESS_SECRET?: string;
 
+  @IsOptional()
   @IsString()
-  JWT_REFRESH_SECRET: string;
+  JWT_REFRESH_SECRET?: string;
 
   @IsOptional()
   @IsString()
@@ -37,8 +45,9 @@ export class AuthConfigSchema {
   @IsString()
   JWT_REFRESH_EXPIRES_IN?: string;
 
+  @IsOptional()
   @IsString()
-  KAFKA_BROKERS: string;
+  KAFKA_BROKERS?: string;
 
   @IsOptional()
   @IsString()

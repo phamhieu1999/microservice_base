@@ -18,11 +18,20 @@ import { plainToClass } from 'class-transformer';
 import { CacheModule } from '../common/cache/cache.module';
 
 async function validateConfig(config: Record<string, unknown>) {
-  const validatedConfig = plainToClass(AuthConfigSchema, config, {
+  // Filter out undefined values - chỉ validate các property có giá trị thực sự
+  const configWithValues = Object.fromEntries(
+    Object.entries(config).filter(([_, value]) => value !== undefined && value !== '')
+  );
+  
+  const validatedConfig = plainToClass(AuthConfigSchema, configWithValues, {
     enableImplicitConversion: true,
   });
+  
   const errors = await validate(validatedConfig, {
-    skipMissingProperties: false,
+    // Cho phép thiếu biến môi trường trong môi trường dev,
+    // vì nhiều giá trị đã có default trong code (TypeORM config, v.v.).
+    skipMissingProperties: true,
+    whitelist: true, // Chỉ validate các property có trong schema
   });
 
   if (errors.length > 0) {

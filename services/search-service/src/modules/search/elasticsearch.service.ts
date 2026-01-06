@@ -189,7 +189,7 @@ export class ElasticsearchService implements OnModuleInit, OnModuleDestroy {
         },
       });
 
-      return result.body.hits.hits.map((hit: any) => ({
+      return result.hits.hits.map((hit: any) => ({
         productId: hit._source.productId,
         name: hit._source.name,
         description: hit._source.description,
@@ -224,7 +224,7 @@ export class ElasticsearchService implements OnModuleInit, OnModuleDestroy {
         },
       });
 
-      return result.body.hits.hits.map((hit: any) => ({
+      return result.hits.hits.map((hit: any) => ({
         productId: hit._source.productId,
         name: hit._source.name,
         price: hit._source.price,
@@ -253,7 +253,7 @@ export class ElasticsearchService implements OnModuleInit, OnModuleDestroy {
         },
       });
 
-      return result.body.hits.hits.map((hit: any) => hit._source);
+      return result.hits.hits.map((hit: any) => hit._source);
     } catch (err) {
       this.logger.error('Error searching by category', err as Error);
       return [];
@@ -278,7 +278,7 @@ export class ElasticsearchService implements OnModuleInit, OnModuleDestroy {
         },
       });
 
-      return result.body.hits.hits.map((hit: any) => hit._source);
+      return result.hits.hits.map((hit: any) => hit._source);
     } catch (err) {
       this.logger.error('Error searching by brand', err as Error);
       return [];

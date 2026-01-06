@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
@@ -51,7 +49,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"  # Changed to 6380 to avoid conflict with host Redis
     command: redis-server --appendonly yes
     volumes:
       - redis-data:/data
@@ -352,9 +350,12 @@ services:
       PORT: 3014
       ANALYTICS_MONGO_URI: mongodb://mongo:27017/analytics_db
       KAFKA_BROKERS: kafka:9092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     depends_on:
       - mongo
       - kafka
+      - redis
 
   clickhouse:
     image: clickhouse/clickhouse-server:latest
@@ -372,15 +373,6 @@ services:
       nofile:
         soft: 262144
         hard: 262144
-
-volumes:
-  redis-data:
-  prometheus-data:
-  grafana-data:
-  alertmanager-data:
-  elasticsearch-data:
-  clickhouse-data:
-  clickhouse-logs:
 
   postgres-loyalty:
     image: postgres:15
@@ -472,3 +464,12 @@ volumes:
     depends_on:
       - clickhouse
       - kafka
+
+volumes:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+  alertmanager-data:
+  elasticsearch-data:
+  clickhouse-data:
+  clickhouse-logs:

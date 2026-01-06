@@ -1,8 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ClickHouseService } from '../../database/clickhouse.service';
 
 @Injectable()
-export class WarehouseService {
+export class WarehouseService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(WarehouseService.name);
   
   // Batch buffers để tối ưu insert performance
@@ -11,9 +11,12 @@ export class WarehouseService {
   private readonly BATCH_SIZE = 100; // Flush khi đủ 100 records
   private readonly BATCH_TIMEOUT = 5000; // Flush sau 5 giây nếu chưa đủ batch
   private flushTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private autoFlushInterval: ReturnType<typeof setInterval> | null = null;
 
-  constructor(private readonly clickhouse: ClickHouseService) {
-    // Auto-flush buffers định kỳ
+  constructor(private readonly clickhouse: ClickHouseService) {}
+
+  async onModuleInit() {
+    // Auto-flush buffers định kỳ - chỉ start sau khi module đã khởi tạo xong
     this.startAutoFlush();
   }
 
@@ -21,7 +24,10 @@ export class WarehouseService {
    * Auto-flush buffers sau một khoảng thời gian
    */
   private startAutoFlush() {
-    setInterval(() => {
+    if (this.autoFlushInterval) {
+      clearInterval(this.autoFlushInterval);
+    }
+    this.autoFlushInterval = setInterval(() => {
       this.flushAllBuffers();
     }, this.BATCH_TIMEOUT);
   }
@@ -30,6 +36,15 @@ export class WarehouseService {
    * Flush tất cả buffers
    */
   private async flushAllBuffers() {
+    try {
+      // Kiểm tra xem ClickHouse client đã sẵn sàng chưa
+      this.clickhouse.getClient();
+    } catch (error) {
+      // Client chưa sẵn sàng, bỏ qua flush lần này
+      this.logger.debug('ClickHouse client not ready, skipping buffer flush');
+      return;
+    }
+
     const promises: Promise<void>[] = [];
     
     if (this.orderFactBuffer.length > 0) {
@@ -657,7 +672,6 @@ export class WarehouseService {
       query,
       query_params: params,
       format: 'JSONEachRow',
-      request_timeout: 30000, // 30 seconds timeout
     });
 
     return await result.json();
@@ -702,7 +716,6 @@ export class WarehouseService {
       query,
       query_params: params,
       format: 'JSONEachRow',
-      request_timeout: 30000, // 30 seconds timeout
     });
 
     return await result.json();
@@ -746,7 +759,6 @@ export class WarehouseService {
       query,
       query_params: params,
       format: 'JSONEachRow',
-      request_timeout: 30000, // 30 seconds timeout
     });
 
     return await result.json();
@@ -756,6 +768,12 @@ export class WarehouseService {
    * Graceful shutdown - flush all buffers
    */
   async onModuleDestroy() {
+    // Clear auto-flush interval
+    if (this.autoFlushInterval) {
+      clearInterval(this.autoFlushInterval);
+      this.autoFlushInterval = null;
+    }
+    
     await this.flushAllBuffers();
     // Clear all timers
     this.flushTimers.forEach(timer => clearTimeout(timer));

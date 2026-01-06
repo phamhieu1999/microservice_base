@@ -8,7 +8,8 @@
   "scripts": {
     "lint": "echo \"no root lint\"",
     "test": "echo \"run tests per service\""
+  },
+  "devDependencies": {
+    "cacheable": "^2.3.1"
   }
 }
-
-
