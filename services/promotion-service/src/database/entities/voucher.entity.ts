@@ -6,16 +6,16 @@ export type VoucherType = 'DISCOUNT' | 'FREESHIP' | 'LOYALTY_EXCHANGE';
 @Entity({ name: 'vouchers' })
 export class Voucher {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ unique: true })
-  code: string;
+  code!: string;
 
   @Column({ type: 'varchar', default: 'DISCOUNT' })
-  type: VoucherType;
+  type!: VoucherType;
 
   @Column({ type: 'varchar', default: 'GLOBAL' })
-  scope: VoucherScope;
+  scope!: VoucherScope;
 
   @Column({ nullable: true })
   shopId?: string;
@@ -24,7 +24,7 @@ export class Voucher {
   productId?: string;
 
   @Column({ type: 'decimal' })
-  discountValue: number;
+  discountValue!: number;
 
   @Column({ type: 'decimal', nullable: true })
   maxDiscount?: number;
@@ -45,7 +45,7 @@ export class Voucher {
   endAt?: Date;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 }
 
 

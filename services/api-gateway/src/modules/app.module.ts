@@ -16,6 +16,7 @@ import { LoyaltyProxyModule } from './loyalty-proxy/loyalty-proxy.module';
 import { WarehouseProxyModule } from './warehouse-proxy/warehouse-proxy.module';
 import { HomeModule } from './home/home.module';
 import { AdminProxyModule } from './admin-proxy/admin-proxy.module';
+import { PromotionProxyModule } from './promotion-proxy/promotion-proxy.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthController } from '../common/health.controller';
 import { CacheModule } from '../common/cache/cache.module';
@@ -49,6 +50,7 @@ import { CircuitBreakerModule } from '../common/circuit-breaker/circuit-breaker.
     SearchProxyModule,
     LoyaltyProxyModule,
     WarehouseProxyModule,
+    PromotionProxyModule,
     HomeModule,
     AdminProxyModule,
   ],

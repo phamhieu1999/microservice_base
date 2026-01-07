@@ -70,12 +70,29 @@ export class CircuitBreakerService {
       // Success
       circuit.onSuccess();
       return result;
-    } catch (error) {
-      // Failure
-      circuit.onFailure();
-      this.logger.error(`Circuit ${circuitName} failure: ${(error as Error).message}`);
+    } catch (error: any) {
+      // 4xx errors (client errors) - không count là circuit breaker failure
+      // Chỉ count 5xx errors hoặc network errors là failures
+      const status = error.status || error.response?.status;
+      const isClientError = status >= 400 && status < 500;
+      
+      if (!isClientError) {
+        // Chỉ count server errors (5xx) hoặc network errors là failures
+        circuit.onFailure();
+        this.logger.error(`Circuit ${circuitName} failure: ${(error as Error).message}`);
+      } else {
+        // Client errors (4xx) - log nhưng không count là failure, throw error thực tế
+        this.logger.warn(`Circuit ${circuitName} client error (not counted as failure): ${(error as Error).message}`);
+        // Re-throw để NestJS xử lý và trả về error response đúng
+        const httpException: any = error;
+        if (error.response?.data) {
+          httpException.response = error.response.data;
+        }
+        throw httpException;
+      }
 
       if (fallback) {
+        // Chỉ dùng fallback cho server errors hoặc network errors
         return fallback();
       }
       throw error;

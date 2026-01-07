@@ -1,7 +1,7 @@
 import { Injectable, Optional } from '@nestjs/common';
 import { CartRepository } from './cart.repository';
 import { CartItemDto } from './dto/cart-item.dto';
-import { CacheService } from '../../common/cache/cache.service';
+import { CacheService } from '../../common/cache.service';
 
 @Injectable()
 export class CartService {

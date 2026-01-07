@@ -10,8 +10,8 @@ import {
 
 @ApiTags('notifications')
 @Controller('notifications')
-// @UseGuards(JwtAuthGuard)
-// @ApiBearerAuth('JWT-auth')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth('JWT-auth')
 export class NotificationController {
   constructor(private readonly service: NotificationService) {}
 
@@ -26,8 +26,9 @@ export class NotificationController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
+    const userId = req.user?.sub || req.user?.userId;
     return this.service.listByUser(
-      req.user.userId,
+      userId,
       page ? parseInt(page, 10) : 1,
       limit ? parseInt(limit, 10) : 20,
     );
@@ -38,7 +39,8 @@ export class NotificationController {
   @ApiResponse({ status: 200, description: 'Unread count', type: UnreadCountResponseDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   getUnreadCount(@Req() req: any) {
-    return this.service.getUnreadCount(req.user.userId);
+    const userId = req.user?.sub || req.user?.userId;
+    return this.service.getUnreadCount(userId);
   }
 
   @Post(':id/read')
@@ -48,7 +50,8 @@ export class NotificationController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Notification not found' })
   markAsRead(@Req() req: any, @Param('id') id: string) {
-    return this.service.markAsRead(id, req.user.userId);
+    const userId = req.user?.sub || req.user?.userId;
+    return this.service.markAsRead(id, userId);
   }
 }
 

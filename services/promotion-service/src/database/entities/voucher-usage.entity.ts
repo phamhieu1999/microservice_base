@@ -3,16 +3,16 @@ import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeor
 @Entity({ name: 'voucher_usages' })
 export class VoucherUsage {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column()
-  voucherId: string;
+  voucherId!: string;
 
   @Column()
-  userId: string;
+  userId!: string;
 
   @CreateDateColumn()
-  usedAt: Date;
+  usedAt!: Date;
 }
 
 

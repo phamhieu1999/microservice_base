@@ -5,7 +5,7 @@ import { firstValueFrom } from 'rxjs';
 @Injectable()
 export class NotificationProxyService {
   private readonly notificationBaseUrl =
-    process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3005';
+    process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3005';
 
   constructor(private readonly http: HttpService) {}
 

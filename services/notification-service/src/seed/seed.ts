@@ -212,6 +212,215 @@ async function seed() {
           changedAt: new Date(),
         },
       },
+      // Additional unread notifications for better unread count testing
+      {
+        userId: 'user_001',
+        type: 'ORDER_CREATED',
+        title: 'Đơn hàng đã được tạo',
+        content: 'Đơn hàng #ORD-2024-004 của bạn đã được tạo thành công. Tổng tiền: 3,599,000 VNĐ',
+        read: false,
+        metadata: {
+          orderId: 'ORD-2024-004',
+          amount: 3599000,
+          items: 5,
+        },
+      },
+      {
+        userId: 'user_001',
+        type: 'ORDER_CREATED',
+        title: 'Đơn hàng đã được tạo',
+        content: 'Đơn hàng #ORD-2024-005 của bạn đã được tạo thành công. Tổng tiền: 1,899,000 VNĐ',
+        read: false,
+        metadata: {
+          orderId: 'ORD-2024-005',
+          amount: 1899000,
+          items: 2,
+        },
+      },
+      {
+        userId: 'user_001',
+        type: 'PAYMENT_SUCCESS',
+        title: 'Thanh toán thành công',
+        content: 'Thanh toán cho đơn hàng #ORD-2024-004 đã thành công. Số tiền: 3,599,000 VNĐ',
+        read: false,
+        metadata: {
+          orderId: 'ORD-2024-004',
+          paymentId: 'PAY-2024-004',
+          amount: 3599000,
+          paymentMethod: 'Credit Card',
+        },
+      },
+      {
+        userId: 'user_001',
+        type: 'ORDER_SHIPPED',
+        title: 'Đơn hàng đã được giao',
+        content: 'Đơn hàng #ORD-2024-004 của bạn đã được giao thành công. Vui lòng kiểm tra và đánh giá sản phẩm.',
+        read: false,
+        metadata: {
+          orderId: 'ORD-2024-004',
+          trackingNumber: 'TRACK-2024-004',
+          shippedAt: new Date(),
+        },
+      },
+      {
+        userId: 'user_001',
+        type: 'MESSAGE_RECEIVED',
+        title: 'Tin nhắn mới',
+        content: 'Bạn có tin nhắn mới từ người bán về đơn hàng #ORD-2024-004',
+        read: false,
+        metadata: {
+          senderId: 'seller_002',
+          senderName: 'Cửa hàng thời trang XYZ',
+          orderId: 'ORD-2024-004',
+        },
+      },
+      {
+        userId: 'user_001',
+        type: 'PROMOTION',
+        title: 'Khuyến mãi cuối tuần',
+        content: 'Giảm 30% cho tất cả sản phẩm thời trang. Áp dụng đến hết ngày 15/01/2025',
+        read: false,
+        metadata: {
+          promotionId: 'PROMO-2024-003',
+          discount: 30,
+          category: 'Fashion',
+          validUntil: '2025-01-15',
+        },
+      },
+      {
+        userId: 'user_001',
+        type: 'REVIEW_REMINDER',
+        title: 'Nhắc nhở đánh giá',
+        content: 'Bạn đã nhận được đơn hàng #ORD-2024-004. Hãy đánh giá sản phẩm để nhận điểm thưởng!',
+        read: false,
+        metadata: {
+          orderId: 'ORD-2024-004',
+          daysSinceDelivery: 1,
+        },
+      },
+      {
+        userId: 'user_001',
+        type: 'REVIEW_REMINDER',
+        title: 'Nhắc nhở đánh giá',
+        content: 'Bạn đã nhận được đơn hàng #ORD-2024-005. Hãy đánh giá sản phẩm để nhận điểm thưởng!',
+        read: false,
+        metadata: {
+          orderId: 'ORD-2024-005',
+          daysSinceDelivery: 2,
+        },
+      },
+      {
+        userId: 'user_002',
+        type: 'ORDER_CREATED',
+        title: 'Đơn hàng đã được tạo',
+        content: 'Đơn hàng #ORD-2024-006 của bạn đã được tạo thành công. Tổng tiền: 4,299,000 VNĐ',
+        read: false,
+        metadata: {
+          orderId: 'ORD-2024-006',
+          amount: 4299000,
+          items: 4,
+        },
+      },
+      {
+        userId: 'user_002',
+        type: 'PAYMENT_SUCCESS',
+        title: 'Thanh toán thành công',
+        content: 'Thanh toán cho đơn hàng #ORD-2024-006 đã thành công. Số tiền: 4,299,000 VNĐ',
+        read: false,
+        metadata: {
+          orderId: 'ORD-2024-006',
+          paymentId: 'PAY-2024-006',
+          amount: 4299000,
+          paymentMethod: 'Bank Transfer',
+        },
+      },
+      {
+        userId: 'user_002',
+        type: 'ORDER_SHIPPED',
+        title: 'Đơn hàng đang được vận chuyển',
+        content: 'Đơn hàng #ORD-2024-006 của bạn đang được vận chuyển. Mã vận đơn: TRACK-2024-006',
+        read: false,
+        metadata: {
+          orderId: 'ORD-2024-006',
+          trackingNumber: 'TRACK-2024-006',
+          status: 'in_transit',
+        },
+      },
+      {
+        userId: 'user_002',
+        type: 'MESSAGE_RECEIVED',
+        title: 'Tin nhắn mới',
+        content: 'Bạn có tin nhắn mới từ người bán về đơn hàng #ORD-2024-006',
+        read: false,
+        metadata: {
+          senderId: 'seller_003',
+          senderName: 'Cửa hàng đồ gia dụng DEF',
+          orderId: 'ORD-2024-006',
+        },
+      },
+      {
+        userId: 'user_002',
+        type: 'PROMOTION',
+        title: 'Khuyến mãi sinh nhật',
+        content: 'Chúc mừng sinh nhật! Bạn được giảm 25% cho đơn hàng tiếp theo. Áp dụng đến hết ngày 20/01/2025',
+        read: false,
+        metadata: {
+          promotionId: 'PROMO-2024-004',
+          discount: 25,
+          type: 'birthday',
+          validUntil: '2025-01-20',
+        },
+      },
+      {
+        userId: 'user_002',
+        type: 'REVIEW_REMINDER',
+        title: 'Nhắc nhở đánh giá',
+        content: 'Bạn đã nhận được đơn hàng #ORD-2024-006. Hãy đánh giá sản phẩm để nhận điểm thưởng!',
+        read: false,
+        metadata: {
+          orderId: 'ORD-2024-006',
+          daysSinceDelivery: 0,
+        },
+      },
+      // Additional user for testing
+      {
+        userId: '2cece589-a7e4-4203-9955-6a5ab04eeacd', // admin user ID from auth-service seed
+        type: 'ORDER_CREATED',
+        title: 'Đơn hàng đã được tạo',
+        content: 'Đơn hàng #ORD-2024-007 của bạn đã được tạo thành công. Tổng tiền: 5,999,000 VNĐ',
+        read: false,
+        metadata: {
+          orderId: 'ORD-2024-007',
+          amount: 5999000,
+          items: 6,
+        },
+      },
+      {
+        userId: '2cece589-a7e4-4203-9955-6a5ab04eeacd',
+        type: 'PAYMENT_SUCCESS',
+        title: 'Thanh toán thành công',
+        content: 'Thanh toán cho đơn hàng #ORD-2024-007 đã thành công. Số tiền: 5,999,000 VNĐ',
+        read: false,
+        metadata: {
+          orderId: 'ORD-2024-007',
+          paymentId: 'PAY-2024-007',
+          amount: 5999000,
+          paymentMethod: 'VNPay',
+        },
+      },
+      {
+        userId: '2cece589-a7e4-4203-9955-6a5ab04eeacd',
+        type: 'PROMOTION',
+        title: 'Khuyến mãi VIP',
+        content: 'Bạn là khách hàng VIP! Giảm 40% cho đơn hàng tiếp theo. Áp dụng đến hết tháng 1/2025',
+        read: false,
+        metadata: {
+          promotionId: 'PROMO-2024-005',
+          discount: 40,
+          type: 'vip',
+          validUntil: '2025-01-31',
+        },
+      },
     ];
 
     // Insert notifications
@@ -254,6 +463,31 @@ async function seed() {
     typeSummary.forEach((item) => {
       console.log(`  ${item._id}: ${item.count}`);
     });
+
+    // Display unread count summary
+    const unreadSummary = await NotificationModel.aggregate([
+      {
+        $match: { read: false },
+      },
+      {
+        $group: {
+          _id: '$userId',
+          unreadCount: { $sum: 1 },
+        },
+      },
+      {
+        $sort: { unreadCount: -1 },
+      },
+    ]);
+
+    console.log('\n🔔 Unread Count by User:');
+    unreadSummary.forEach((item) => {
+      console.log(`  User: ${item._id}, Unread: ${item.unreadCount}`);
+    });
+
+    const totalUnread = await NotificationModel.countDocuments({ read: false });
+    const totalRead = await NotificationModel.countDocuments({ read: true });
+    console.log(`\n📊 Total: ${totalUnread} unread, ${totalRead} read`);
 
     console.log('\n🎉 Notification data seeding completed successfully!');
   } catch (error) {

@@ -9,9 +9,9 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { NotificationProxyService } from './notification-proxy.service';
 
 @ApiTags('notifications')
-@ApiBearerAuth()
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth('JWT-auth')
 export class NotificationProxyController {
   constructor(private readonly service: NotificationProxyService) {}
 
