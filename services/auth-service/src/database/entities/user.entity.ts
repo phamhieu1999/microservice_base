@@ -26,7 +26,7 @@ export class User {
   @Column({ default: false })
   isLocked: boolean; // Account lockout
 
-  @Column({ nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   lockedUntil?: Date | null; // Lock expiry time
 
   @Column({ nullable: true })

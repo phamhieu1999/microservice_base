@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
-import * as compression from 'compression';
+import compression from 'compression';
 import { AppModule } from './modules/app.module';
 import { JsonLoggerService } from './common/json-logger.service';
 import { setupSwagger } from './swagger';

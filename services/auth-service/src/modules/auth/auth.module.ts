@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { AuthRepository } from './auth.repository';
@@ -15,10 +16,12 @@ import { RefreshTokenUseCase } from '../../application/auth/use-cases/refresh-to
 import { LogoutUseCase } from '../../application/auth/use-cases/logout.usecase';
 import { DeviceModule } from './device/device.module';
 import { SessionCacheService } from '../../common/cache/session.cache';
+import { JwtStrategy } from './jwt.strategy';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, RefreshToken, LoginAttempt]),
+    PassportModule,
     JwtModule.register({}),
     DeviceModule,
   ],
@@ -33,6 +36,7 @@ import { SessionCacheService } from '../../common/cache/session.cache';
     RefreshTokenUseCase,
     LogoutUseCase,
     SessionCacheService,
+    JwtStrategy,
   ],
 })
 export class AuthModule {}

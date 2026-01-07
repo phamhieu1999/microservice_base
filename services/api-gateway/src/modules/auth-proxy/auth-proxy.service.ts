@@ -4,7 +4,13 @@ import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class AuthProxyService {
-  private readonly authBaseUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
+  /**
+   * Base URL cho Auth Service.
+   * - Khi chạy Docker: dùng AUTH_SERVICE_URL (ví dụ http://auth-service:3001).
+   * - Khi chạy local (npm start): fallback sang http://localhost:3001 để tránh lỗi DNS auth-service.
+   */
+  private readonly authBaseUrl =
+    process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
 
   constructor(private readonly http: HttpService) {}
 

@@ -20,21 +20,22 @@ import { AuthModule } from './auth/auth.module';
 import { HealthController } from '../common/health.controller';
 import { CacheModule } from '../common/cache/cache.module';
 import { CacheInterceptor } from '../common/cache/cache.interceptor';
+import { CircuitBreakerModule } from '../common/circuit-breaker/circuit-breaker.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ThrottlerModule.forRoot({
-      ttl: 60,
-      limit: 100, // default 100 requests / 60s per IP
-      // Per-endpoint limits
-      throttlers: [
-        { name: 'auth', ttl: 60, limit: 5 }, // 5 req/min for auth
-        { name: 'search', ttl: 60, limit: 30 }, // 30 req/min for search
-        { name: 'order', ttl: 60, limit: 10 }, // 10 req/min for order
-      ],
-    }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60,
+        limit: 100, // default 100 requests / 60s per IP (global)
+      },
+      { name: 'auth', ttl: 60, limit: 5 }, // 5 req/min cho auth
+      { name: 'search', ttl: 60, limit: 30 }, // 30 req/min cho search
+      { name: 'order', ttl: 60, limit: 10 }, // 10 req/min cho order
+    ]),
     CacheModule,
+    CircuitBreakerModule,
     HttpModule,
     AuthModule,
     AuthProxyModule,
