@@ -5,7 +5,7 @@ export class ReplyDisputeDto {
   @ApiProperty({ description: 'Actor user id (seller or support)' })
   @IsString()
   @IsNotEmpty()
-  actorId: string;
+  actorId!: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

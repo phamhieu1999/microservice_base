@@ -5,22 +5,22 @@ export class CreateDisputeDto {
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
-  orderId: string;
+  orderId!: string;
 
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
-  userId: string;
+  userId!: string;
 
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
-  sellerId: string;
+  sellerId!: string;
 
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
-  reasonCode: string;
+  reasonCode!: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

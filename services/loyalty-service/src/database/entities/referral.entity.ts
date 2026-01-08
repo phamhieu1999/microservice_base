@@ -5,28 +5,28 @@ export type ReferralStatus = 'PENDING' | 'COMPLETED' | 'CANCELLED';
 @Entity({ name: 'referrals' })
 export class Referral {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Index()
   @Column()
-  referrerUserId: string;
+  referrerUserId!: string;
 
   @Index({ unique: true })
   @Column()
-  referralCode: string;
+  referralCode!: string;
 
-  @Index({ nullable: true })
   @Column({ nullable: true })
+  @Index()
   referredUserId?: string;
 
   @Column({ type: 'int', default: 0 })
-  pointsAwarded: number;
+  pointsAwarded!: number;
 
   @Column({ type: 'varchar', length: 20, default: 'PENDING' })
-  status: ReferralStatus;
+  status!: ReferralStatus;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @Column({ type: 'timestamp', nullable: true })
   completedAt?: Date;

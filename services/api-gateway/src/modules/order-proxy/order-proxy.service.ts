@@ -33,7 +33,7 @@ export class OrderProxyService {
         })),
       };
       try {
-        const validated = await this.promotion.validate(authHeader, validateDto);
+        const validated = await this.promotion.validate(authHeader, validateDto) as any;
         voucherPayload = {
           voucherId: validated.voucherId,
           discountAmount: validated.discountAmount,

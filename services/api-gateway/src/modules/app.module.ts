@@ -16,9 +16,12 @@ import { SearchProxyModule } from './search-proxy/search-proxy.module';
 import { LoyaltyProxyModule } from './loyalty-proxy/loyalty-proxy.module';
 import { WarehouseProxyModule } from './warehouse-proxy/warehouse-proxy.module';
 import { ShippingProxyModule } from './shipping-proxy/shipping-proxy.module';
+import { PaymentProxyModule } from './payment-proxy/payment-proxy.module';
 import { HomeModule } from './home/home.module';
 import { AdminProxyModule } from './admin-proxy/admin-proxy.module';
 import { PromotionProxyModule } from './promotion-proxy/promotion-proxy.module';
+import { DisputeProxyModule } from './dispute-proxy/dispute-proxy.module';
+import { DLQProxyModule } from './dlq-proxy/dlq-proxy.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthController } from '../common/health.controller';
 import { CacheModule } from '../common/cache/cache.module';
@@ -54,7 +57,10 @@ import { CircuitBreakerModule } from '../common/circuit-breaker/circuit-breaker.
     LoyaltyProxyModule,
     WarehouseProxyModule,
     ShippingProxyModule,
+    PaymentProxyModule,
     PromotionProxyModule,
+    DisputeProxyModule,
+    DLQProxyModule,
     HomeModule,
     AdminProxyModule,
   ],

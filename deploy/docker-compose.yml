@@ -303,12 +303,16 @@ services:
       CHAT_SERVICE_URL: http://chat-service:3011
       SEARCH_SERVICE_URL: http://search-service:3012
       LOYALTY_SERVICE_URL: http://loyalty-service:3015
+      DISPUTE_SERVICE_URL: http://dispute-service:3016
+      DLQ_SERVICE_URL: http://dlq-service:3013
       WAREHOUSE_SERVICE_URL: http://warehouse-service:3018
       NOTIFICATION_SERVICE_URL: http://notification-service:3005
       JWT_ACCESS_SECRET: access-secret
     depends_on:
       - auth-service
       - product-service
+      - dispute-service
+      - dlq-service
     ports:
       - "3000:3000"
 

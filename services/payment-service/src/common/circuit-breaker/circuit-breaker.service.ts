@@ -60,10 +60,12 @@ export class CircuitBreakerService {
     }
 
     try {
+      // Ensure timeout is positive
+      const timeout = Math.max(1000, circuit.config.timeout); // Minimum 1 second
       const result = await Promise.race([
         fn(),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Timeout')), circuit.config.timeout),
+          setTimeout(() => reject(new Error('Timeout')), timeout),
         ),
       ]);
 

@@ -132,27 +132,33 @@ describe('PaymentService', () => {
       expect(result.payment).toEqual(existingPayment);
     });
 
-    it('should return existing payment if idempotency key exists', async () => {
+    it('should handle payment provider failure', async () => {
       const dto = {
         orderId: 'order-123',
         amount: 100000,
-        idempotencyKey: 'key-123',
+        provider: 'MOCK' as any,
       };
 
-      const existingPayment = {
+      repo.findByIdempotencyKey.mockResolvedValue(null);
+      repo.createPending.mockResolvedValue({
         id: 'payment-123',
         orderId: 'order-123',
         amount: 100000,
         status: 'PENDING',
-      };
+      } as any);
 
-      repo.findByIdempotencyKey.mockResolvedValue(existingPayment as any);
+      providerFactory.getProvider.mockReturnValue(mockProvider);
+      mockProvider.createPayment.mockResolvedValue({
+        success: false,
+        error: 'PROVIDER_ERROR',
+      });
+
+      repo.markFailed.mockResolvedValue(undefined);
 
       const result = await service.createPayment(dto, 'user-123');
 
-      expect(repo.findByIdempotencyKey).toHaveBeenCalledWith('key-123');
-      expect(repo.createPending).not.toHaveBeenCalled();
-      expect(result.payment).toEqual(existingPayment);
+      expect(repo.markFailed).toHaveBeenCalled();
+      expect(result.payment.status).toBe('PENDING');
     });
   });
 
@@ -201,6 +207,7 @@ describe('PaymentService', () => {
         amount: 100000,
         status: 'SUCCESS',
         refundedAmount: 0,
+        provider: 'MOCK',
       };
 
       repo.findById.mockResolvedValue(payment as any);
@@ -235,6 +242,44 @@ describe('PaymentService', () => {
       repo.findById.mockResolvedValue(payment as any);
 
       await expect(service.refund('payment-123', { amount: 50000 })).rejects.toThrow();
+    });
+
+    it('should throw error if refund amount exceeds payment amount', async () => {
+      const payment = {
+        id: 'payment-123',
+        orderId: 'order-123',
+        amount: 100000,
+        status: 'SUCCESS',
+        refundedAmount: 50000,
+      };
+
+      repo.findById.mockResolvedValue(payment as any);
+
+      await expect(service.refund('payment-123', { amount: 60000 })).rejects.toThrow();
+    });
+  });
+
+  describe('getPaymentStatus', () => {
+    it('should return payment status', async () => {
+      const payment = {
+        id: 'payment-123',
+        orderId: 'order-123',
+        amount: 100000,
+        status: 'SUCCESS',
+      };
+
+      repo.findById.mockResolvedValue(payment as any);
+
+      const result = await service.getPaymentStatus('payment-123');
+
+      expect(repo.findById).toHaveBeenCalledWith('payment-123');
+      expect(result).toEqual(payment);
+    });
+
+    it('should throw error if payment not found', async () => {
+      repo.findById.mockResolvedValue(null);
+
+      await expect(service.getPaymentStatus('payment-123')).rejects.toThrow();
     });
   });
 });

@@ -7,7 +7,13 @@
     "start:dev": "nest start --watch",
     "build": "nest build",
     "test": "jest",
-    "lint": "eslint \"src/**/*.ts\""
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "lint": "eslint \"src/**/*.ts\"",
+    "migration:run": "ts-node src/database/run-migration.ts",
+    "migration:revert": "ts-node src/database/revert-migration.ts",
+    "migration:show": "ts-node src/database/show-migrations.ts",
+    "seed:run": "ts-node src/seed/run-seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
@@ -20,7 +26,9 @@
     "rxjs": "^7.8.0",
     "kafkajs": "^2.2.4",
     "dotenv": "^16.4.0",
-    "@nestjs/swagger": "^7.1.0"
+    "@nestjs/swagger": "^7.1.0",
+    "class-validator": "^0.14.0",
+    "class-transformer": "^0.5.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",

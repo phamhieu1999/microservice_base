@@ -7,10 +7,15 @@
     "start:dev": "nest start --watch",
     "build": "nest build",
     "test": "jest",
-    "lint": "eslint \"src/**/*.ts\""
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "lint": "eslint \"src/**/*.ts\"",
+    "migration": "ts-node -r dotenv/config src/database/migration.ts",
+    "seed": "ts-node -r dotenv/config src/seed/seed-data.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
+    "@nestjs/config": "^10.0.0",
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/mongoose": "^10.0.0",

@@ -15,15 +15,20 @@ import { PaymentEventsConsumer } from '../kafka/payment.consumer';
     ConfigModule.forRoot({ isGlobal: true }),
     HttpModule,
     TypeOrmModule.forRootAsync({
-      useFactory: () => ({
+      useFactory: () => {
+        const dbHost = process.env.LOYALTY_DB_HOST || 'localhost';
+        // Use port 5438 for localhost (docker-compose host port), 5432 for container
+        const defaultPort = dbHost === 'localhost' || dbHost === '127.0.0.1' ? 5438 : 5432;
+        
+        return {
         type: 'postgres',
-        host: process.env.LOYALTY_DB_HOST || 'localhost',
-        port: +(process.env.LOYALTY_DB_PORT || 5432),
+          host: dbHost,
+          port: +(process.env.LOYALTY_DB_PORT || defaultPort),
         username: process.env.LOYALTY_DB_USER || 'loyalty_user',
         password: process.env.LOYALTY_DB_PASSWORD || 'loyalty_password',
         database: process.env.LOYALTY_DB_NAME || 'loyalty_db',
         entities: [UserPoints, PointTransaction, PointTier, Referral],
-        synchronize: true,
+        synchronize: false, // Use migrations instead of synchronize
         // Connection Pooling Configuration
         extra: {
           max: parseInt(process.env.DB_POOL_MAX || '20', 10), // Maximum pool size
@@ -32,7 +37,8 @@ import { PaymentEventsConsumer } from '../kafka/payment.consumer';
           connectionTimeoutMillis: parseInt(process.env.DB_POOL_CONNECTION_TIMEOUT || '2000', 10),
         },
         poolSize: parseInt(process.env.DB_POOL_SIZE || '20', 10),
-      }),
+        };
+      },
     }),
     LoyaltyModule,
   ],

@@ -30,13 +30,16 @@ export class FailedMessage {
   retryCount: number;
 
   @Prop({ default: 'PENDING' })
-  status: 'PENDING' | 'RETRYING' | 'RESOLVED' | 'IGNORED';
+  status: 'PENDING' | 'RETRYING' | 'RESOLVED' | 'IGNORED' | 'FAILED_PERMANENT';
 
   @Prop()
   retriedAt?: Date;
 
   @Prop()
   resolvedAt?: Date;
+
+  @Prop()
+  lastError?: string;
 }
 
 export const FailedMessageSchema = SchemaFactory.createForClass(FailedMessage);

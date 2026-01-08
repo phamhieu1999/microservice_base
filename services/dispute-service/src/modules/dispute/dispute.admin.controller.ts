@@ -1,14 +1,32 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags, ApiQuery, ApiOkResponse } from '@nestjs/swagger';
 import { DisputeService } from './dispute.service';
+import { Dispute } from '../../database/entities/dispute.entity';
 
 @ApiTags('disputes-admin')
-@Controller('disputes')
+@Controller('admin/disputes')
 export class DisputeAdminController {
   constructor(private readonly disputeService: DisputeService) {}
 
   @Get()
   @ApiOperation({ summary: 'Admin list disputes with filters & paging' })
+  @ApiQuery({ name: 'status', required: false, enum: ['OPEN', 'SELLER_RESPONDED', 'ESCALATED', 'RESOLVED', 'REJECTED'], description: 'Filter by status' })
+  @ApiQuery({ name: 'sellerId', required: false, type: String, description: 'Filter by seller ID' })
+  @ApiQuery({ name: 'userId', required: false, type: String, description: 'Filter by user ID' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 20)' })
+  @ApiOkResponse({
+    description: 'List of disputes with filters and pagination',
+    schema: {
+      type: 'object',
+      properties: {
+        items: { type: 'array', items: { $ref: '#/components/schemas/Dispute' } },
+        total: { type: 'number' },
+        page: { type: 'number' },
+        limit: { type: 'number' },
+      },
+    },
+  })
   async list(
     @Query('status') status?: string,
     @Query('sellerId') sellerId?: string,

@@ -1,7 +1,8 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Consumer, Kafka } from 'kafkajs';
 import { LoyaltyService } from '../modules/loyalty/loyalty.service';
-import { PAYMENT_SUCCESS_TOPIC } from '../../payment-service-placeholder';
+
+const PAYMENT_SUCCESS_TOPIC = 'payment.success';
 
 @Injectable()
 export class PaymentEventsConsumer implements OnModuleInit {

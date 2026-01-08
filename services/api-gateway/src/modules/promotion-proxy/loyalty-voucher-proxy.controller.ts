@@ -6,20 +6,25 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { PromotionProxyService } from './promotion-proxy.service';
+import { LoyaltyProxyService } from '../loyalty-proxy/loyalty-proxy.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @ApiTags('loyalty')
 @Controller('loyalty-vouchers')
 export class LoyaltyVoucherProxyController {
-  constructor(private readonly service: PromotionProxyService) {}
+  constructor(private readonly loyaltyService: LoyaltyProxyService) {}
 
   @Post('exchange')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Exchange loyalty points for voucher' })
+  @ApiOperation({
+    summary: 'Exchange loyalty points for voucher',
+    description: 'Đổi điểm tích lũy để lấy voucher. Loyalty service sẽ trừ điểm và gọi promotion service để tạo voucher.',
+  })
   @ApiResponse({ status: 200, description: 'Voucher created successfully' })
   @ApiResponse({ status: 400, description: 'Not enough points to exchange' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 503, description: 'Loyalty or Promotion service is temporarily unavailable' })
   @ApiBody({
     description: 'Loyalty points to exchange for voucher',
     schema: {
@@ -36,12 +41,13 @@ export class LoyaltyVoucherProxyController {
     },
   })
   async exchange(@Req() req: any, @Body() body: { points: number }) {
-    const authorization = req.headers['authorization'] as string;
     const userId = req.user?.userId;
     if (!userId) {
       throw new Error('User ID is required');
     }
-    return this.service.exchangeLoyaltyVoucher(authorization, userId, body.points);
+    // Gọi loyalty service để đổi điểm lấy voucher
+    // Loyalty service sẽ tự động trừ điểm và gọi promotion service để tạo voucher
+    return this.loyaltyService.redeem(userId, { points: body.points });
   }
 }
 

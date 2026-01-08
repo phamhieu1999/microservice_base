@@ -5,7 +5,7 @@ export class EscalateDisputeDto {
   @ApiProperty({ description: 'User id who escalates' })
   @IsString()
   @IsNotEmpty()
-  actorId: string;
+  actorId!: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

@@ -1,7 +1,7 @@
 import { Inject, Injectable, BadRequestException, NotFoundException, Optional } from '@nestjs/common';
 import { ILoyaltyRepository } from '../../../domain/loyalty/loyalty.repository';
 import { Referral } from '../../../domain/referral/referral.entity';
-import { EarnPointsUseCase } from '../loyalty/use-cases/earn-points.usecase';
+import { EarnPointsUseCase } from '../../loyalty/use-cases/earn-points.usecase';
 import { KafkaService } from '../../../kafka/kafka.service';
 import { TracingService } from '../../../common/tracing.service';
 

@@ -67,37 +67,11 @@ export class DLQService implements OnModuleInit {
     return this.failedMessageModel.findById(id).exec();
   }
 
-  async retryFailedMessage(id: string) {
-    const failedMessage = await this.failedMessageModel.findById(id).exec();
-    if (!failedMessage) {
-      throw new Error('Failed message not found');
-    }
-
-    if (failedMessage.status === 'RETRYING') {
-      throw new Error('Message is already being retried');
-    }
-
-    // Exponential backoff: 1s, 5s, 15s, 60s
-    const delays = [1000, 5000, 15000, 60000];
-    const attempt = failedMessage.retryCount || 0;
-
-    if (attempt >= delays.length) {
-      // Move to permanent DLQ (mark as FAILED_PERMANENT)
-      await this.failedMessageModel.updateOne(
-        { _id: id },
-        {
-          status: 'FAILED_PERMANENT',
-          lastError: 'Max retry attempts reached',
-          updatedAt: new Date(),
-        },
-      );
-      this.logger.warn(`Failed message ${id} reached max retry attempts`);
-      return { success: false, message: 'Max retry attempts reached' };
-    }
-
-    const delay = delays[attempt];
-    this.logger.log(`Scheduling retry for message ${id} in ${delay}ms (attempt ${attempt + 1})`);
-
+  private async republishMessage(
+    id: string,
+    failedMessage: FailedMessageDocument,
+    delay: number,
+  ): Promise<void> {
     setTimeout(async () => {
       try {
         // Republish to original topic
@@ -125,11 +99,72 @@ export class DLQService implements OnModuleInit {
           },
         );
 
-        this.logger.log(`Republished failed message ${id} to ${failedMessage.originalTopic}`);
+        this.logger.log(
+          `Republished failed message ${id} to ${failedMessage.originalTopic}`,
+        );
       } catch (err) {
         this.logger.error(`Error republishing message ${id}`, err as Error);
       }
     }, delay);
+  }
+
+  async retryFailedMessage(id: string) {
+    const failedMessage = await this.failedMessageModel.findById(id).exec();
+    if (!failedMessage) {
+      throw new Error('Failed message not found');
+    }
+
+    if (failedMessage.status === 'RETRYING') {
+      throw new Error('Message is already being retried');
+    }
+
+    // Exponential backoff: 1s, 5s, 15s, 60s
+    const delays = [1000, 5000, 15000, 60000];
+    let attempt = failedMessage.retryCount || 0;
+
+    // Validate retryCount to prevent negative or invalid values
+    if (attempt < 0) {
+      // Invalid retryCount (negative), reset to 0
+      this.logger.warn(
+        `Invalid retryCount (${attempt}) for message ${id}, resetting to 0`,
+      );
+      await this.failedMessageModel.updateOne(
+        { _id: id },
+        { retryCount: 0 },
+      );
+      attempt = 0;
+    }
+
+    if (attempt >= delays.length) {
+      // Move to permanent DLQ (mark as FAILED_PERMANENT)
+      await this.failedMessageModel.updateOne(
+        { _id: id },
+        {
+          status: 'FAILED_PERMANENT',
+          lastError: 'Max retry attempts reached',
+          updatedAt: new Date(),
+        },
+      );
+      this.logger.warn(`Failed message ${id} reached max retry attempts`);
+      return { success: false, message: 'Max retry attempts reached' };
+    }
+
+    let delay = delays[attempt];
+
+    // Validate delay to prevent negative timeout (safety check)
+    if (delay < 0 || !Number.isFinite(delay) || delay > 2147483647) {
+      // Max safe integer for setTimeout is 2^31 - 1 (2147483647 ms)
+      this.logger.error(
+        `Invalid delay value (${delay}) for message ${id}, using minimum delay of 1000ms`,
+      );
+      delay = 1000;
+    }
+
+    this.logger.log(
+      `Scheduling retry for message ${id} in ${delay}ms (attempt ${attempt + 1})`,
+    );
+
+    await this.republishMessage(id, failedMessage, delay);
 
     return { success: true, message: 'Retry scheduled', delayMs: delay };
   }

@@ -70,7 +70,7 @@ export class LoyaltyTypeormRepository implements ILoyaltyRepository {
   }
 
   async findReferralByReferrerId(referrerId: string): Promise<Referral | null> {
-    const orm = await this.referralRepo.findOne({ where: { referrerId } });
+    const orm = await this.referralRepo.findOne({ where: { referrerUserId: referrerId } });
     return orm ? ormToDomainReferral(orm) : null;
   }
 
