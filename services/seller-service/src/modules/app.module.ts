@@ -9,15 +9,40 @@ import { Shop } from '../database/entities/shop.entity';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
-      useFactory: () => ({
-        type: 'postgres',
-        host: process.env.SELLER_DB_HOST || 'localhost',
-        port: +(process.env.SELLER_DB_PORT || 5432),
-        username: process.env.SELLER_DB_USER || 'seller_user',
-        password: process.env.SELLER_DB_PASSWORD || 'seller_password',
-        database: process.env.SELLER_DB_NAME || 'seller_db',
+      useFactory: () => {
+        // Support both SELLER_DB_* and legacy DB_* environment variables
+        const host = process.env.SELLER_DB_HOST || process.env.DB_HOST || 'localhost';
+        const isLocal = host === 'localhost';
+        
+        // When running locally (localhost), always use port 5436 (docker-compose mapping)
+        // When running in container, use env variables (postgres-seller:5432)
+        // Only use explicit SELLER_DB_PORT if set, otherwise auto-detect based on host
+        let port: number;
+        if (process.env.SELLER_DB_PORT) {
+          port = +process.env.SELLER_DB_PORT;
+        } else if (isLocal) {
+          // Local development: use docker-compose mapped port
+          port = 5436;
+        } else {
+          // Container: use default or DB_PORT from env
+          port = +(process.env.DB_PORT || 5432);
+        }
+        
+        const username = process.env.SELLER_DB_USER || process.env.DB_USERNAME || 'seller_user';
+        const password = process.env.SELLER_DB_PASSWORD || process.env.DB_PASSWORD || 'seller_password';
+        const database = process.env.SELLER_DB_NAME || process.env.DB_DATABASE || 'seller_db';
+        
+        return {
+          type: 'postgres',
+          host,
+          port,
+          username,
+          password,
+          database,
         entities: [Seller, Shop],
-        synchronize: true,
+        migrations: ['dist/migrations/**/*.js'],
+        synchronize: false,
+        migrationsRun: false,
         // Connection Pooling Configuration
         extra: {
           max: parseInt(process.env.DB_POOL_MAX || '20', 10), // Maximum pool size
@@ -26,7 +51,8 @@ import { Shop } from '../database/entities/shop.entity';
           connectionTimeoutMillis: parseInt(process.env.DB_POOL_CONNECTION_TIMEOUT || '2000', 10),
         },
         poolSize: parseInt(process.env.DB_POOL_SIZE || '20', 10),
-      }),
+        };
+      },
     }),
     SellerModule,
   ],

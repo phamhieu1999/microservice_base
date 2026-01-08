@@ -5,23 +5,23 @@ export type PayoutStatus = 'REQUESTED' | 'APPROVED' | 'PAID' | 'REJECTED';
 @Entity({ name: 'payout_requests' })
 export class PayoutRequest {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column()
-  sellerId: string;
+  sellerId!: string;
 
   @Column({ type: 'decimal' })
-  amount: number;
+  amount!: number;
 
   @Column({ type: 'varchar', length: 20, default: 'REQUESTED' })
-  status: PayoutStatus;
+  status!: PayoutStatus;
 
   @Column({ type: 'text', nullable: true })
   note?: string;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

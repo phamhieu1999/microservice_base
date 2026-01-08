@@ -56,8 +56,18 @@ export class OrderProxyService {
         })),
       };
       try {
-        const quoted = await this.shipping.quote(authHeader, quoteDto);
-        shippingPayload = { shippingFee: quoted.totalShippingFee };
+        const quoted = await this.shipping.getQuote(quoteDto) as any;
+        // Response format: { quotes: [...], totalQuotes: number }
+        // Lấy quote đầu tiên (hoặc có thể chọn quote rẻ nhất)
+        if (quoted?.quotes && quoted.quotes.length > 0) {
+          // Lấy quote đầu tiên hoặc quote có totalFee thấp nhất
+          const selectedQuote = quoted.quotes.reduce((min: any, quote: any) => 
+            quote.totalFee < min.totalFee ? quote : min
+          );
+          shippingPayload = { shippingFee: selectedQuote.totalFee };
+        } else {
+          throw new Error('No quotes available');
+        }
       } catch (error) {
         // Nếu shipping service không available, dùng shippingFee từ body hoặc mặc định
         console.warn('Shipping service unavailable, using provided shippingFee:', error);

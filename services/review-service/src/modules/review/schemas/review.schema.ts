@@ -4,13 +4,13 @@ import { Document } from 'mongoose';
 @Schema({ timestamps: true })
 export class Review extends Document {
   @Prop({ required: true, index: true })
-  productId: string;
+  productId!: string;
 
   @Prop({ required: true, index: true })
-  userId: string;
+  userId!: string;
 
   @Prop({ required: true, min: 1, max: 5 })
-  rating: number;
+  rating!: number;
 
   @Prop()
   content?: string;

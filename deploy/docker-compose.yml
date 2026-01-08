@@ -158,14 +158,39 @@ services:
       postgres-promo:
         condition: service_healthy
 
+  postgres-shipping:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: shipping_user
+      POSTGRES_PASSWORD: shipping_password
+      POSTGRES_DB: shipping_db
+    ports:
+      - "5441:5432"
+    volumes:
+      - postgres-shipping-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shipping_user -d shipping_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   shipping-service:
     build:
       context: ../services/shipping-service
       dockerfile: Dockerfile
     environment:
       PORT: 3010
+      SHIPPING_DB_HOST: postgres-shipping
+      SHIPPING_DB_PORT: 5432
+      SHIPPING_DB_USER: shipping_user
+      SHIPPING_DB_PASSWORD: shipping_password
+      SHIPPING_DB_NAME: shipping_db
+      KAFKA_BROKERS: kafka:9092
     depends_on:
-      - mongo
+      postgres-shipping:
+        condition: service_healthy
+      kafka:
+        condition: service_started
 
   chat-service:
     build:
@@ -272,6 +297,7 @@ services:
       CART_SERVICE_URL: http://cart-service:3006
       REVIEW_SERVICE_URL: http://review-service:3007
       SELLER_SERVICE_URL: http://seller-service:3008
+      SETTLEMENT_SERVICE_URL: http://settlement-service:3017
       PROMOTION_SERVICE_URL: http://promotion-service:3009
       SHIPPING_SERVICE_URL: http://shipping-service:3010
       CHAT_SERVICE_URL: http://chat-service:3011
@@ -479,6 +505,7 @@ volumes:
   grafana-data:
   alertmanager-data:
   postgres-promo-data:
+  postgres-shipping-data:
   elasticsearch-data:
   clickhouse-data:
   clickhouse-logs:

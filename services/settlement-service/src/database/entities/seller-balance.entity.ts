@@ -3,14 +3,14 @@ import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 @Entity({ name: 'seller_balances' })
 export class SellerBalance {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ unique: true })
-  sellerId: string;
+  sellerId!: string;
 
   @Column({ type: 'decimal', default: 0 })
-  availableAmount: number;
+  availableAmount!: number;
 
   @Column({ type: 'decimal', default: 0 })
-  pendingAmount: number;
+  pendingAmount!: number;
 }

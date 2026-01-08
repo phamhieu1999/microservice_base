@@ -3,7 +3,7 @@ import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 @Entity({ name: 'commission_configs' })
 export class CommissionConfig {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ nullable: true })
   sellerId?: string;
@@ -12,5 +12,5 @@ export class CommissionConfig {
   categoryId?: string;
 
   @Column({ type: 'decimal', default: 0 })
-  commissionRate: number; // 0.1 = 10%
+  commissionRate!: number; // 0.1 = 10%
 }

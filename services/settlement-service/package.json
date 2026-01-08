@@ -7,7 +7,11 @@
     "start:dev": "nest start --watch",
     "build": "nest build",
     "test": "jest",
-    "lint": "eslint \"src/**/*.ts\""
+    "lint": "eslint \"src/**/*.ts\"",
+    "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/config/data-source.ts",
+    "migration:run": "typeorm-ts-node-commonjs migration:run -d src/config/data-source.ts",
+    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/config/data-source.ts",
+    "seed": "ts-node src/seed/run-seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
@@ -20,7 +24,9 @@
     "rxjs": "^7.8.0",
     "kafkajs": "^2.2.4",
     "dotenv": "^16.4.0",
-    "@nestjs/swagger": "^7.1.0"
+    "@nestjs/swagger": "^7.1.0",
+    "class-validator": "^0.14.0",
+    "class-transformer": "^0.5.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
