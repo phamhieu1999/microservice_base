@@ -7,9 +7,12 @@
     "start:dev": "nest start --watch",
     "build": "nest build",
     "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
     "lint": "eslint \"src/**/*.ts\"",
-    "migrate": "ts-node src/migrations/1700000000001-CreateAnalyticsIndexes.ts",
-    "seed": "ts-node src/seed/seed.ts"
+    "migration": "ts-node -r dotenv/config src/database/migration.ts",
+    "migrate": "ts-node -r dotenv/config src/database/migration.ts",
+    "seed": "ts-node -r dotenv/config src/seed/seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

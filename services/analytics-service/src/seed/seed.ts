@@ -1,28 +1,24 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from '../modules/app.module';
-import { RevenueMetric, RevenueMetricSchema, RevenueMetricDocument } from '../modules/analytics/schemas/revenue-metric.schema';
-import { ProductMetric, ProductMetricSchema, ProductMetricDocument } from '../modules/analytics/schemas/product-metric.schema';
-import { UserMetric, UserMetricSchema, UserMetricDocument } from '../modules/analytics/schemas/user-metric.schema';
-import { SellerMetric, SellerMetricSchema, SellerMetricDocument } from '../modules/analytics/schemas/seller-metric.schema';
-import { Model } from 'mongoose';
-import { getConnectionToken } from '@nestjs/mongoose';
-import { Connection } from 'mongoose';
+import * as mongoose from 'mongoose';
+import { RevenueMetricSchema } from '../modules/analytics/schemas/revenue-metric.schema';
+import { ProductMetricSchema } from '../modules/analytics/schemas/product-metric.schema';
+import { UserMetricSchema } from '../modules/analytics/schemas/user-metric.schema';
+import { SellerMetricSchema } from '../modules/analytics/schemas/seller-metric.schema';
 
 async function seed() {
-  const app = await NestFactory.createApplicationContext(AppModule);
+  // Determine MongoDB URI
+  // Priority: 1. ANALYTICS_MONGO_URI env var, 2. Use localhost (for local development)
+  // For Docker containers, set ANALYTICS_MONGO_URI=mongodb://mongo:27017/analytics_db
+  const mongoUri = process.env.ANALYTICS_MONGO_URI || 'mongodb://localhost:27017/analytics_db';
   
   try {
-    const connection = app.get<Connection>(getConnectionToken());
-    
-    // Get or create models (check if model exists first)
-    const RevenueMetricModel = (connection.models[RevenueMetric.name] || 
-      connection.model<RevenueMetricDocument>(RevenueMetric.name, RevenueMetricSchema)) as Model<RevenueMetricDocument>;
-    const ProductMetricModel = (connection.models[ProductMetric.name] || 
-      connection.model<ProductMetricDocument>(ProductMetric.name, ProductMetricSchema)) as Model<ProductMetricDocument>;
-    const UserMetricModel = (connection.models[UserMetric.name] || 
-      connection.model<UserMetricDocument>(UserMetric.name, UserMetricSchema)) as Model<UserMetricDocument>;
-    const SellerMetricModel = (connection.models[SellerMetric.name] || 
-      connection.model<SellerMetricDocument>(SellerMetric.name, SellerMetricSchema)) as Model<SellerMetricDocument>;
+    console.log(`🔄 Connecting to MongoDB...`);
+    await mongoose.connect(mongoUri);
+    console.log('✅ Connected to MongoDB');
+
+    const RevenueMetricModel = mongoose.model('RevenueMetric', RevenueMetricSchema);
+    const ProductMetricModel = mongoose.model('ProductMetric', ProductMetricSchema);
+    const UserMetricModel = mongoose.model('UserMetric', UserMetricSchema);
+    const SellerMetricModel = mongoose.model('SellerMetric', SellerMetricSchema);
 
     console.log('🌱 Starting analytics data seeding...');
 
@@ -140,11 +136,12 @@ async function seed() {
     console.log(`✅ Seeded ${sellerMetrics.length} seller metrics`);
 
     console.log('🎉 Analytics data seeding completed successfully!');
+    await mongoose.disconnect();
+    process.exit(0);
   } catch (error) {
     console.error('❌ Error seeding analytics data:', error);
+    await mongoose.disconnect();
     process.exit(1);
-  } finally {
-    await app.close();
   }
 }
 

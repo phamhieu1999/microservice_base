@@ -5,7 +5,7 @@ export type SellerMetricDocument = SellerMetric & Document;
 
 @Schema({ timestamps: true })
 export class SellerMetric {
-  @Prop({ required: true, index: true })
+  @Prop({ required: true })
   sellerId: string;
 
   @Prop({ default: 0 })
@@ -20,4 +20,4 @@ export class SellerMetric {
 
 export const SellerMetricSchema = SchemaFactory.createForClass(SellerMetric);
 
-SellerMetricSchema.index({ sellerId: 1 });
+// Indexes are created via migration script for better control

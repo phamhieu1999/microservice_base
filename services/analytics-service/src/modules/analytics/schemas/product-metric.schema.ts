@@ -5,7 +5,7 @@ export type ProductMetricDocument = ProductMetric & Document;
 
 @Schema({ timestamps: true })
 export class ProductMetric {
-  @Prop({ required: true, index: true })
+  @Prop({ required: true })
   productId: string;
 
   @Prop({ required: true })
@@ -23,16 +23,14 @@ export class ProductMetric {
   @Prop({ default: 0 })
   conversionRate: number; // (salesCount / views) * 100
 
-  @Prop({ index: true })
+  @Prop()
   category?: string;
 
-  @Prop({ index: true })
+  @Prop()
   sellerId?: string;
 }
 
 export const ProductMetricSchema = SchemaFactory.createForClass(ProductMetric);
 
-ProductMetricSchema.index({ salesCount: -1 });
-ProductMetricSchema.index({ revenue: -1 });
-ProductMetricSchema.index({ sellerId: 1 });
+// Indexes are created via migration script for better control
 

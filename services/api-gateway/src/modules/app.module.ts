@@ -22,6 +22,7 @@ import { AdminProxyModule } from './admin-proxy/admin-proxy.module';
 import { PromotionProxyModule } from './promotion-proxy/promotion-proxy.module';
 import { DisputeProxyModule } from './dispute-proxy/dispute-proxy.module';
 import { DLQProxyModule } from './dlq-proxy/dlq-proxy.module';
+import { AnalyticsProxyModule } from './analytics-proxy/analytics-proxy.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthController } from '../common/health.controller';
 import { CacheModule } from '../common/cache/cache.module';
@@ -61,6 +62,7 @@ import { CircuitBreakerModule } from '../common/circuit-breaker/circuit-breaker.
     PromotionProxyModule,
     DisputeProxyModule,
     DLQProxyModule,
+    AnalyticsProxyModule,
     HomeModule,
     AdminProxyModule,
   ],

@@ -5,7 +5,7 @@ export type UserMetricDocument = UserMetric & Document;
 
 @Schema({ timestamps: true })
 export class UserMetric {
-  @Prop({ required: true, index: true })
+  @Prop({ required: true })
   date: Date; // YYYY-MM-DD format
 
   @Prop({ required: true, default: 0 })
@@ -23,5 +23,5 @@ export class UserMetric {
 
 export const UserMetricSchema = SchemaFactory.createForClass(UserMetric);
 
-UserMetricSchema.index({ date: 1 });
+// Indexes are created via migration script for better control
 
