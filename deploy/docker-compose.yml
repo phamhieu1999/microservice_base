@@ -398,12 +398,12 @@ services:
   clickhouse:
     image: clickhouse/clickhouse-server:latest
     ports:
-      - "8123:8123" # HTTP interface
-      - "9000:9000" # Native protocol
+      - "${CLICKHOUSE_PORT_HTTP:-8123}:8123" # HTTP interface
+      - "${CLICKHOUSE_PORT_NATIVE:-9000}:9000" # Native protocol
     environment:
-      CLICKHOUSE_DB: warehouse_db
-      CLICKHOUSE_USER: warehouse_user
-      CLICKHOUSE_PASSWORD: warehouse_password
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-warehouse_db}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-warehouse_user}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-warehouse_password}
     volumes:
       - clickhouse-data:/var/lib/clickhouse
       - clickhouse-logs:/var/log/clickhouse-server
@@ -492,12 +492,12 @@ services:
       context: ../services/warehouse-service
       dockerfile: Dockerfile
     environment:
-      PORT: 3018
-      CLICKHOUSE_HOST: clickhouse
-      CLICKHOUSE_PORT: 8123
-      CLICKHOUSE_USER: warehouse_user
-      CLICKHOUSE_PASSWORD: warehouse_password
-      CLICKHOUSE_DB: warehouse_db
+      PORT: ${WAREHOUSE_SERVICE_PORT:-3018}
+      CLICKHOUSE_HOST: ${WAREHOUSE_CLICKHOUSE_HOST:-clickhouse}
+      CLICKHOUSE_PORT: ${WAREHOUSE_CLICKHOUSE_PORT:-8123}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-warehouse_user}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-warehouse_password}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-warehouse_db}
       KAFKA_BROKERS: kafka:9092
     depends_on:
       - clickhouse

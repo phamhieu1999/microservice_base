@@ -161,6 +161,7 @@ export class WarehouseService implements OnModuleInit, OnModuleDestroy {
     paymentId: string;
     orderId: string;
     userId: string;
+    sellerId?: string;
     amount: number;
     fee?: number;
     paymentMethod: string;
@@ -173,6 +174,7 @@ export class WarehouseService implements OnModuleInit, OnModuleDestroy {
       payment_id: data.paymentId,
       order_id: data.orderId,
       user_id: data.userId,
+      seller_id: data.sellerId || '',
       amount: data.amount,
       fee: data.fee || 0,
       payment_method: data.paymentMethod,
@@ -273,6 +275,7 @@ export class WarehouseService implements OnModuleInit, OnModuleDestroy {
     paymentId: string;
     orderId: string;
     userId: string;
+    sellerId?: string;
     amount: number;
     fee?: number;
     paymentMethod: string;
@@ -286,6 +289,7 @@ export class WarehouseService implements OnModuleInit, OnModuleDestroy {
       payment_id: data.paymentId,
       order_id: data.orderId,
       user_id: data.userId,
+      seller_id: data.sellerId || '',
       amount: data.amount,
       fee: data.fee || 0,
       payment_method: data.paymentMethod,

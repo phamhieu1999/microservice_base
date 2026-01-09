@@ -214,6 +214,7 @@ export class WarehouseConsumer implements OnModuleInit, OnModuleDestroy {
       paymentId: event.paymentId || event.id,
       orderId: event.orderId,
       userId: event.userId,
+      sellerId: event.sellerId, // Add sellerId from event
       amount: event.amount,
       fee: event.fee || 0,
       paymentMethod: event.method || event.paymentMethod || 'UNKNOWN',
@@ -329,6 +330,7 @@ export class WarehouseConsumer implements OnModuleInit, OnModuleDestroy {
         paymentId: event.paymentId || event.id,
         orderId: event.orderId,
         userId: event.userId,
+        sellerId: event.sellerId, // Add sellerId from event
         amount: event.amount,
         fee: event.fee || 0,
         paymentMethod: event.method || event.paymentMethod || 'UNKNOWN',

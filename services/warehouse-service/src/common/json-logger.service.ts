@@ -1,27 +1,39 @@
-import { Injectable, LoggerService, Logger } from '@nestjs/common';
+import { LoggerService } from '@nestjs/common';
 
-@Injectable()
 export class JsonLoggerService implements LoggerService {
-  private readonly logger = new Logger();
+  constructor(private readonly serviceName: string) {}
 
-  log(message: string, context?: string) {
-    this.logger.log(JSON.stringify({ level: 'info', message, context, timestamp: new Date().toISOString() }));
+  log(message: any, context?: string) {
+    this.print('log', message, context);
   }
 
-  error(message: string, trace?: string, context?: string) {
-    this.logger.error(JSON.stringify({ level: 'error', message, trace, context, timestamp: new Date().toISOString() }));
+  error(message: any, trace?: string, context?: string) {
+    this.print('error', message, context, trace);
   }
 
-  warn(message: string, context?: string) {
-    this.logger.warn(JSON.stringify({ level: 'warn', message, context, timestamp: new Date().toISOString() }));
+  warn(message: any, context?: string) {
+    this.print('warn', message, context);
   }
 
-  debug(message: string, context?: string) {
-    this.logger.debug(JSON.stringify({ level: 'debug', message, context, timestamp: new Date().toISOString() }));
+  debug?(message: any, context?: string) {
+    this.print('debug', message, context);
   }
 
-  verbose(message: string, context?: string) {
-    this.logger.verbose(JSON.stringify({ level: 'verbose', message, context, timestamp: new Date().toISOString() }));
+  verbose?(message: any, context?: string) {
+    this.print('verbose', message, context);
+  }
+
+  private print(level: string, message: any, context?: string, trace?: string) {
+    const payload = {
+      timestamp: new Date().toISOString(),
+      level,
+      service: this.serviceName,
+      context,
+      message,
+      trace,
+    };
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify(payload));
   }
 }
 
