@@ -26,13 +26,31 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    try {
-      await this.producer.connect();
-      this.logger.log('Kafka producer connected');
-    } catch (err) {
-      this.logger.error(
-        `Kafka connect failed: ${(err as Error).message}. Service will continue without Kafka.`,
-      );
+    // Retry logic với exponential backoff
+    const maxRetries = 5;
+    let retryCount = 0;
+    let connected = false;
+
+    while (retryCount < maxRetries && !connected) {
+      try {
+        await this.producer.connect();
+        connected = true;
+        this.logger.log('Kafka producer connected');
+      } catch (err) {
+        retryCount++;
+        if (retryCount < maxRetries) {
+          const backoffMs = Math.min(1000 * Math.pow(2, retryCount - 1), 10000);
+          this.logger.warn(
+            `Kafka connect failed (attempt ${retryCount}/${maxRetries}): ${(err as Error).message}. Retrying in ${backoffMs}ms...`,
+          );
+          await new Promise(resolve => setTimeout(resolve, backoffMs));
+        } else {
+          this.logger.error(
+            `Kafka connect failed after ${maxRetries} attempts: ${(err as Error).message}. Service will continue without Kafka.`,
+          );
+          // Không throw error để service vẫn có thể khởi động
+        }
+      }
     }
   }
 

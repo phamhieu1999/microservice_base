@@ -60,12 +60,16 @@ async function validateConfig(config: Record<string, unknown>) {
         database: process.env.AUTH_DB_NAME || 'auth_db',
         entities: [User, RefreshToken, UserMFA, LoginAttempt, UserDevice],
         synchronize: true, // PRODUCTION: dùng migration, không để true
+        // Retry connection on startup
+        retryAttempts: parseInt(process.env.DB_RETRY_ATTEMPTS || '5', 10),
+        retryDelay: parseInt(process.env.DB_RETRY_DELAY || '3000', 10),
+        logging: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
         // Connection Pooling Configuration
         extra: {
           max: parseInt(process.env.DB_POOL_MAX || '20', 10), // Maximum pool size
           min: parseInt(process.env.DB_POOL_MIN || '5', 10),  // Minimum pool size
           idleTimeoutMillis: parseInt(process.env.DB_POOL_IDLE_TIMEOUT || '30000', 10),
-          connectionTimeoutMillis: parseInt(process.env.DB_POOL_CONNECTION_TIMEOUT || '2000', 10),
+          connectionTimeoutMillis: parseInt(process.env.DB_POOL_CONNECTION_TIMEOUT || '30000', 10), // Tăng lên 30s
         },
         poolSize: parseInt(process.env.DB_POOL_SIZE || '20', 10),
       }),

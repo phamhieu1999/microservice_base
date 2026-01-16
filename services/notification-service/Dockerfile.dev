@@ -1,0 +1,16 @@
+FROM node:20-alpine
+
+WORKDIR /usr/src/app
+
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Install all dependencies (including dev dependencies for hot reload)
+RUN npm install
+
+# Expose port
+EXPOSE 3005
+
+# Run in development mode with hot reload
+CMD ["npm", "run", "start:dev"]
+

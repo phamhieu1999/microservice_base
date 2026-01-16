@@ -22,6 +22,14 @@ Cấu trúc chính:
 
 - **[SYSTEM_OVERVIEW.md](./SYSTEM_OVERVIEW.md)** - Tổng quan hệ thống, danh sách services, phân tích giao tiếp, luồng dữ liệu
 - **[SERVICE_COMMUNICATION_DIAGRAM.md](./SERVICE_COMMUNICATION_DIAGRAM.md)** - Sơ đồ giao tiếp chi tiết giữa các service, luồng xử lý, event flow matrix
+- **[DESIGN_PATTERNS_ANALYSIS.md](./DESIGN_PATTERNS_ANALYSIS.md)** - Phân tích tổng quan và chi tiết các design patterns được tích hợp trong hệ thống
+- **[DOCKER_OBJECTS_ANALYSIS.md](./DOCKER_OBJECTS_ANALYSIS.md)** - Phân tích chi tiết các Docker Objects: Images, Containers, Volumes, Networks, Health Checks, Dependencies
+- **[DOCKER_COMPOSE_DOCKERFILE_LINKAGE.md](./DOCKER_COMPOSE_DOCKERFILE_LINKAGE.md)** - Giải thích chi tiết mối liên kết giữa docker-compose.yml và Dockerfile của các services, build context, path resolution
+- **[DOCKER_VOLUMES_FLOW_ANALYSIS.md](./DOCKER_VOLUMES_FLOW_ANALYSIS.md)** - Phân tích luồng Docker volume và chức năng: data persistence flow, volume lifecycle, backup/restore, best practices
+- **[VOLUME_PATHS_GUIDE.md](./VOLUME_PATHS_GUIDE.md)** - Hướng dẫn xem đường dẫn lưu trữ Docker volumes trên máy local, truy cập data, backup/restore
+- **[CLICKHOUSE_ANALYSIS.md](./CLICKHOUSE_ANALYSIS.md)** - Phân tích hoạt động của ClickHouse trong hệ thống: Star Schema, ETL process, batch processing, query patterns, performance optimizations
+- **[NGINX_HAPROXY_ANALYSIS.md](./NGINX_HAPROXY_ANALYSIS.md)** - Tổng hợp và so sánh Nginx vs HAProxy: cấu hình load balancing, health checks, session persistence, khi nào dùng cái nào, best practices
+- **[NGINX_LOAD_BALANCING_MECHANISM.md](./NGINX_LOAD_BALANCING_MECHANISM.md)** - Phân tích chi tiết cơ chế load balancing của Nginx: thuật toán least_conn, health checks, failover, connection management, scaling behavior, monitoring và tối ưu hóa
 
 ### 📁 Các Thư Mục Tài Liệu Khác
 
