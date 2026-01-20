@@ -15,7 +15,10 @@ export class AuthProxyService {
   constructor(private readonly http: HttpService) {}
 
   async forwardRegister(body: any) {
-    const res = await firstValueFrom(this.http.post(`${this.authBaseUrl}/auth/register`, body));
+    // Chỉ forward email và password, loại bỏ các field không được hỗ trợ (như username)
+    const { email, password } = body;
+    const registerPayload = { email, password };
+    const res = await firstValueFrom(this.http.post(`${this.authBaseUrl}/auth/register`, registerPayload));
     return res.data;
   }
 
