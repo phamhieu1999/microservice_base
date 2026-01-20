@@ -112,6 +112,12 @@ services:
     command: redis-server --appendonly yes
     volumes:
       - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   auth-service:
     build:
@@ -125,6 +131,8 @@ services:
       AUTH_DB_PASSWORD: auth_password
       AUTH_DB_NAME: auth_db
       KAFKA_BROKERS: kafka:9092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       JWT_ACCESS_SECRET: access-secret
       JWT_REFRESH_SECRET: refresh-secret
       DB_POOL_CONNECTION_TIMEOUT: 30000
@@ -135,6 +143,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_started
+      redis:
+        condition: service_healthy
 
   product-service:
     build:
@@ -144,11 +154,17 @@ services:
       PORT: 3002
       PRODUCT_MONGO_URI: mongodb://mongo:27017/product_db
       KAFKA_BROKERS: kafka:9092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     ports:
       - "3002:3002"
     depends_on:
-      - mongo
-      - kafka
+      mongo:
+        condition: service_started
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   cart-service:
     build:
@@ -157,10 +173,15 @@ services:
     environment:
       PORT: 3006
       CART_MONGO_URI: mongodb://mongo:27017/cart_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     ports:
       - "3006:3006"
     depends_on:
-      - mongo
+      mongo:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   review-service:
     build:
@@ -420,11 +441,19 @@ services:
       WAREHOUSE_SERVICE_URL: http://warehouse-service:3018
       NOTIFICATION_SERVICE_URL: http://notification-service:3005
       JWT_ACCESS_SECRET: access-secret
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     depends_on:
-      - auth-service
-      - product-service
-      - dispute-service
-      - dlq-service
+      auth-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+      dispute-service:
+        condition: service_started
+      dlq-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
     ports:
       # Port 3000 exposed for direct access (development)
       # In production, consider removing this and access only via Nginx (port 80)
@@ -474,13 +503,13 @@ services:
     depends_on:
       - prometheus
 
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    ports:
-      - "16686:16686"  # Jaeger UI
-      - "14268:14268"  # HTTP collector
-    environment:
-      - COLLECTOR_ZIPKIN_HTTP_PORT=9411
+  # jaeger:
+  #   image: jaegertracing/all-in-one:latest
+  #   ports:
+  #     - "16686:16686"  # Jaeger UI
+  #     - "14268:14268"  # HTTP collector
+  #   environment:
+  #     - COLLECTOR_ZIPKIN_HTTP_PORT=9411
 
   dlq-service:
     build:
@@ -509,9 +538,12 @@ services:
     ports:
       - "3014:3014"
     depends_on:
-      - mongo
-      - kafka
-      - redis
+      mongo:
+        condition: service_started
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   clickhouse:
     image: clickhouse/clickhouse-server:latest

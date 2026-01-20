@@ -41,38 +41,70 @@ export class OrderEventsConsumer implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
-    await this.consumer.connect();
-    await this.consumer.subscribe({ topic: 'order.created', fromBeginning: false });
-    await this.consumer.subscribe({ topic: 'order.cancelled', fromBeginning: false });
+    const kafkaEnabled = (process.env.KAFKA_ENABLED || 'true') !== 'false';
+    
+    if (!kafkaEnabled) {
+      this.logger.warn('Kafka disabled (KAFKA_ENABLED=false), skip consumer connection');
+      return;
+    }
 
-    await this.consumer.run({
-      eachMessage: async ({ topic, partition, message }) => {
-        const payload = message.value ? JSON.parse(message.value.toString()) : null;
-        if (!payload) return;
+    // Retry logic với exponential backoff
+    const maxRetries = 5;
+    let retryCount = 0;
+    let connected = false;
 
-        const offset = message.offset;
-        const key = message.key?.toString();
+    while (retryCount < maxRetries && !connected) {
+      try {
+        await this.consumer.connect();
+        await this.consumer.subscribe({ topic: 'order.created', fromBeginning: false });
+        await this.consumer.subscribe({ topic: 'order.cancelled', fromBeginning: false });
 
-        try {
-          if (topic === 'order.created') {
-            await this.handleOrderCreated(payload as OrderCreatedEvent);
-          } else if (topic === 'order.cancelled') {
-            await this.handleOrderCancelled(payload as OrderCancelledEvent);
-          }
-        } catch (error) {
-          this.logger.error(`Error processing ${topic} event`, error as Error);
-          // Retry logic with exponential backoff
-          await this.retryWithBackoff(
-            topic,
-            partition,
-            offset,
-            key,
-            payload,
-            error as Error,
+        await this.consumer.run({
+          eachMessage: async ({ topic, partition, message }) => {
+            const payload = message.value ? JSON.parse(message.value.toString()) : null;
+            if (!payload) return;
+
+            const offset = message.offset;
+            const key = message.key?.toString();
+
+            try {
+              if (topic === 'order.created') {
+                await this.handleOrderCreated(payload as OrderCreatedEvent);
+              } else if (topic === 'order.cancelled') {
+                await this.handleOrderCancelled(payload as OrderCancelledEvent);
+              }
+            } catch (error) {
+              this.logger.error(`Error processing ${topic} event`, error as Error);
+              // Retry logic with exponential backoff
+              await this.retryWithBackoff(
+                topic,
+                partition,
+                offset,
+                key,
+                payload,
+                error as Error,
+              );
+            }
+          },
+        });
+        connected = true;
+        this.logger.log('Kafka consumer connected and subscribed to order.created, order.cancelled');
+      } catch (err) {
+        retryCount++;
+        if (retryCount < maxRetries) {
+          const backoffMs = Math.min(1000 * Math.pow(2, retryCount - 1), 10000);
+          this.logger.warn(
+            `Kafka consumer connect failed (attempt ${retryCount}/${maxRetries}): ${(err as Error).message}. Retrying in ${backoffMs}ms...`,
           );
+          await new Promise(resolve => setTimeout(resolve, backoffMs));
+        } else {
+          this.logger.error(
+            `Kafka consumer connect failed after ${maxRetries} attempts: ${(err as Error).message}. Service will continue without Kafka consumer.`,
+          );
+          // Không throw error để service vẫn có thể khởi động
         }
-      },
-    });
+      }
+    }
   }
 
   async onModuleDestroy() {

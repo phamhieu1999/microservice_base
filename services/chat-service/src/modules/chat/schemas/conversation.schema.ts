@@ -4,10 +4,10 @@ import { Document } from 'mongoose';
 @Schema({ timestamps: true })
 export class Conversation extends Document {
   @Prop({ required: true })
-  buyerId: string;
+  buyerId!: string;
 
   @Prop({ required: true })
-  sellerId: string;
+  sellerId!: string;
 
   @Prop({ type: Date, default: null })
   lastMessageAt?: Date | null;
