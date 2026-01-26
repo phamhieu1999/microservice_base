@@ -4,6 +4,7 @@ import { HomePage } from '../views/HomePage';
 import { ProductsPage } from '../views/ProductsPage';
 import { CartPage } from '../views/CartPage';
 import { LoginPage } from '../views/LoginPage';
+import { OAuthCallbackPage } from '../views/OAuthCallbackPage';
 import { RequireAuth } from '../components/RequireAuth';
 
 export const router = createBrowserRouter([
@@ -15,6 +16,7 @@ export const router = createBrowserRouter([
       { path: 'products', element: <ProductsPage /> },
       { path: 'cart', element: <RequireAuth><CartPage /></RequireAuth> },
       { path: 'login', element: <LoginPage /> },
+      { path: 'oauth/callback', element: <OAuthCallbackPage /> },
     ],
   },
 ]);

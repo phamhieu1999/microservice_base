@@ -8,6 +8,7 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Lock, Mail, User } from 'lucide-react';
 import { cn } from '../ui/cn';
+import { env } from '../lib/env';
 
 export function LoginPage() {
   const dispatch = useAppDispatch();
@@ -160,6 +161,25 @@ export function LoginPage() {
                 </Button>
               </div>
             </form>
+
+            <div className="relative py-2 text-center text-[11px] text-slate-500">
+              <span className="bg-white px-2 relative z-10">Hoặc</span>
+              <div className="absolute left-0 right-0 top-1/2 -z-0 h-px bg-slate-200" />
+            </div>
+
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              onClick={() => {
+                window.location.href = `${env.authServiceUrl}/auth/google`;
+              }}
+            >
+              <span className="mr-2 inline-flex h-4 w-4 items-center justify-center rounded-sm bg-white">
+                <span className="text-[10px] font-bold text-slate-700">G</span>
+              </span>
+              Đăng nhập với Google
+            </Button>
 
             <p className="text-xs text-slate-500">
               Token được lưu localStorage và tự refresh khi gặp <code className="rounded bg-slate-100 px-1">401</code>.
