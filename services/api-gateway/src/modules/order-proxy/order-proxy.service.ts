@@ -81,8 +81,8 @@ export class OrderProxyService {
     }
 
     // Loại bỏ các field không cần thiết trước khi gửi sang order-service
-    // Order-service không chấp nhận userId trong body, chỉ dùng x-user-id header
-    const { voucherCode, accessToken, userId, ...cleanBody } = body;
+    // Order-service không chấp nhận userId, address trong body, chỉ dùng x-user-id header
+    const { voucherCode, accessToken, userId, address, ...cleanBody } = body;
     const enrichedBody = {
       ...cleanBody,
       items: body.items,

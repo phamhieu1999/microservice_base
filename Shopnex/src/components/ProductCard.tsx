@@ -1,4 +1,5 @@
 import { Heart, Star } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { Product } from '../features/products/productsSlice';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -27,8 +28,9 @@ export function ProductCard({
 
   return (
     <div className="group overflow-hidden rounded border bg-white shadow-sm transition hover:-translate-y-[1px] hover:shadow-md">
-      <div className="relative">
-        <div className="aspect-square w-full bg-gradient-to-br from-slate-100 to-slate-200" />
+      <Link to={`/products/${product.id}`} className="block">
+        <div className="relative">
+          <div className="aspect-square w-full bg-gradient-to-br from-slate-100 to-slate-200" />
         <button
           className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-white/90 text-slate-700 shadow-sm hover:bg-white"
           aria-label="Yêu thích"
@@ -46,8 +48,13 @@ export function ProductCard({
         </div>
       </div>
 
+      </Link>
       <div className="space-y-2 p-3">
-        <div className="line-clamp-2 min-h-[2.5rem] text-sm font-medium text-slate-900">{product.name}</div>
+        <Link to={`/products/${product.id}`}>
+          <div className="line-clamp-2 min-h-[2.5rem] text-sm font-medium text-slate-900 hover:text-[#ee4d2d]">
+            {product.name}
+          </div>
+        </Link>
 
         <div className="flex items-center justify-between pt-1">
           <div className="text-sm font-semibold text-[#ee4d2d]">{formatPriceUSD(product.price)}</div>

@@ -1,4 +1,4 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ReviewRepository } from './review.repository';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
@@ -9,10 +9,14 @@ export class ReviewService {
   constructor(private readonly repo: ReviewRepository) {}
 
   async create(userId: string, dto: CreateReviewDto) {
-    // Check if user already reviewed this product
+    // Check if user already reviewed this product - if yes, update it instead
     const existingReview = await this.repo.checkUserReviewForProduct(userId, dto.productId);
     if (existingReview) {
-      throw new ConflictException('You have already reviewed this product');
+      // Update existing review instead of throwing error
+      return this.repo.update(existingReview._id.toString(), userId, {
+        rating: dto.rating,
+        content: dto.content,
+      });
     }
     return this.repo.create(userId, dto);
   }

@@ -4,6 +4,7 @@ import { Product, ProductSchema } from '../modules/product/schemas/product.schem
 import { Model } from 'mongoose';
 import { getConnectionToken } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
+import { generateDemoProducts } from './generate-demo-products';
 
 async function seed() {
   const app = await NestFactory.createApplicationContext(AppModule);
@@ -23,7 +24,7 @@ async function seed() {
     console.log(`🗑️  Cleared ${deleteResult.deletedCount} existing products`);
 
     // Sample product data
-    const products = [
+    const baseProducts = [
       // Electronics
       {
         name: 'iPhone 15 Pro Max 256GB',
@@ -254,13 +255,18 @@ async function seed() {
       },
     ];
 
+    // Generate additional demo products (10)
+    const demoProducts = generateDemoProducts(10);
+    const allProducts = [...baseProducts, ...demoProducts];
+
     // Insert products
-    const result = await ProductModel.insertMany(products);
+    const result = await ProductModel.insertMany(allProducts);
     console.log(`✅ Seeded ${result.length} products`);
 
     // Display summary by category
-    const categorySummary = products.reduce((acc, product) => {
-      acc[product.category] = (acc[product.category] || 0) + 1;
+    const categorySummary = allProducts.reduce((acc, product) => {
+      const category = product.category || 'Unknown';
+      acc[category] = (acc[category] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 

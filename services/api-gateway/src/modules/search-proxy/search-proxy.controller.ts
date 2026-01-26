@@ -65,5 +65,14 @@ export class SearchProxyController {
       skip ? parseInt(skip, 10) : undefined,
     );
   }
+
+  @Throttle({ default: { limit: 60, ttl: 60 } }) // 60 requests per minute for autocomplete
+  @Get('autocomplete')
+  @ApiOperation({ summary: 'Lấy gợi ý autocomplete cho từ khóa tìm kiếm' })
+  @ApiQuery({ name: 'q', required: true, description: 'Từ khóa tìm kiếm' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Số lượng gợi ý (default: 10)' })
+  autocomplete(@Query('q') query: string, @Query('limit') limit?: string) {
+    return this.service.forwardAutocomplete(query, limit ? parseInt(limit, 10) : undefined);
+  }
 }
 

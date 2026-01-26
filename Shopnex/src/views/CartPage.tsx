@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { fetchCart, removeCartItem } from '../features/cart/cartSlice';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { Button } from '../ui/Button';
@@ -7,6 +8,7 @@ import { Badge } from '../ui/Badge';
 
 export function CartPage() {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { cart, status, error } = useAppSelector((s) => s.cart);
 
   useEffect(() => {
@@ -95,10 +97,18 @@ export function CartPage() {
                   * Tạm tính được tính theo (price * quantity) từ cart-service.
                 </p>
               </div>
-              <Button disabled={items.length === 0} className="w-full">
+              <Button
+                disabled={items.length === 0}
+                className="w-full"
+                onClick={() => navigate('/checkout')}
+              >
                 Thanh toán
               </Button>
-              <Button variant="secondary" className="w-full">
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={() => navigate('/products')}
+              >
                 Tiếp tục mua sắm
               </Button>
             </CardContent>

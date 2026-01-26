@@ -23,7 +23,10 @@ export class CreateOrderUseCase {
   ) {}
 
   async execute(input: CreateOrderInput): Promise<Order> {
-    const total = input.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+    const subtotal = input.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+    const discountAmount = input.discountAmount || 0;
+    const shippingFee = input.shippingFee || 0;
+    const total = subtotal - discountAmount + shippingFee;
     const order = new Order(
       undefined as any,
       input.userId,

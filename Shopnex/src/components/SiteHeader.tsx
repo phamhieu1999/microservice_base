@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LogOut, Search, ShoppingCart, User } from 'lucide-react';
+import { LogOut, Search, ShoppingCart, User, Package, Star, Bell } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logout } from '../features/auth/authSlice';
 import { Input } from '../ui/Input';
@@ -11,6 +11,7 @@ export function SiteHeader() {
   const nav = useNavigate();
   const isAuthed = useAppSelector((s) => Boolean(s.auth.accessToken));
   const cartCount = useAppSelector((s) => (s.cart.cart?.items ?? []).reduce((sum, it) => sum + (it.quantity ?? 0), 0));
+  const unreadCount = useAppSelector((s) => s.notifications.unreadCount);
 
   return (
     <header className="sticky top-0 z-30 border-b border-white/10 bg-[#ee4d2d] text-white">
@@ -29,13 +30,24 @@ export function SiteHeader() {
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 placeholder="Tìm kiếm sản phẩm…"
-                className="h-11 rounded-xl border-white/20 bg-white pl-9"
+                className="h-11 rounded-xl border-white/20 bg-white pl-9 text-slate-900 placeholder:text-slate-400"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') nav('/products');
+                  if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                    nav(`/search?q=${encodeURIComponent(e.currentTarget.value.trim())}`);
+                  }
                 }}
               />
               <div className="absolute right-1 top-1/2 -translate-y-1/2">
-                <Button variant="brand" className="h-9 rounded-lg px-4" onClick={() => nav('/products')}>
+                <Button
+                  variant="brand"
+                  className="h-9 rounded-lg px-4"
+                  onClick={() => {
+                    const input = document.querySelector('input[placeholder="Tìm kiếm sản phẩm…"]') as HTMLInputElement;
+                    if (input?.value.trim()) {
+                      nav(`/search?q=${encodeURIComponent(input.value.trim())}`);
+                    }
+                  }}
+                >
                   Tìm
                 </Button>
               </div>
@@ -63,6 +75,53 @@ export function SiteHeader() {
               )}
             </NavLink>
 
+            {isAuthed && (
+              <>
+                {/* Notifications */}
+                <button
+                  type="button"
+                  className="relative rounded-lg px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/10"
+                  onClick={() => nav('/notifications')}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Bell className="h-4 w-4" /> <span className="hidden sm:inline">Thông báo</span>
+                  </span>
+                  {unreadCount > 0 && (
+                    <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-300 px-1 text-[11px] font-semibold text-slate-900">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                <NavLink
+                  to="/orders"
+                  className={({ isActive }) =>
+                    cn(
+                      'rounded-lg px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/10',
+                      isActive && 'bg-white/10 text-white',
+                    )
+                  }
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Package className="h-4 w-4" /> <span className="hidden sm:inline">Đơn hàng</span>
+                  </span>
+                </NavLink>
+                <NavLink
+                  to="/reviews"
+                  className={({ isActive }) =>
+                    cn(
+                      'rounded-lg px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/10',
+                      isActive && 'bg-white/10 text-white',
+                    )
+                  }
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Star className="h-4 w-4" /> <span className="hidden sm:inline">Đánh giá</span>
+                  </span>
+                </NavLink>
+              </>
+            )}
+
             {!isAuthed ? (
               <Button variant="secondary" className="ml-1 h-10 rounded-xl border-white/20 bg-white/10 text-white hover:bg-white/15" onClick={() => nav('/login')}>
                 <User className="h-4 w-4" />
@@ -86,15 +145,39 @@ export function SiteHeader() {
 
         {/* sub nav */}
         <div className="hidden h-10 items-center gap-4 text-sm text-white/90 md:flex">
-          <NavLink to="/" className={({ isActive }) => cn('hover:text-white', isActive && 'text-white font-semibold')}>
+          <NavLink
+            to="/"
+            className={({ isActive }) =>
+              cn('hover:text-white', isActive && 'text-white font-semibold')
+            }
+          >
             Trang chủ
           </NavLink>
-          <NavLink to="/products" className={({ isActive }) => cn('hover:text-white', isActive && 'text-white font-semibold')}>
+          <NavLink
+            to="/products"
+            className={({ isActive }) =>
+              cn('hover:text-white', isActive && 'text-white font-semibold')
+            }
+          >
             Tất cả sản phẩm
           </NavLink>
           <span className="text-white/50">|</span>
-          <span className="hover:text-white cursor-default">Flash Sale</span>
-          <span className="hover:text-white cursor-default">Voucher</span>
+          <NavLink
+            to="/flash-sale"
+            className={({ isActive }) =>
+              cn('hover:text-white', isActive && 'text-white font-semibold')
+            }
+          >
+            Flash Sale
+          </NavLink>
+          <NavLink
+            to="/vouchers"
+            className={({ isActive }) =>
+              cn('hover:text-white', isActive && 'text-white font-semibold')
+            }
+          >
+            Voucher
+          </NavLink>
         </div>
       </div>
     </header>

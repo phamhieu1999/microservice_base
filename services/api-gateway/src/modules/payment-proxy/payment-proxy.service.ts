@@ -39,9 +39,21 @@ export class PaymentProxyService {
                   error.stack,
                 );
                 if (error.response) {
+                  // Forward the actual error from payment service
+                  const statusCode = error.response.status || HttpStatus.INTERNAL_SERVER_ERROR;
+                  const errorData = error.response.data;
+                  
+                  // If payment service returns 500, forward it as 500, not 503
+                  if (statusCode === HttpStatus.INTERNAL_SERVER_ERROR) {
+                    throw new HttpException(
+                      errorData || `Payment service error: ${operation}`,
+                      HttpStatus.INTERNAL_SERVER_ERROR,
+                    );
+                  }
+                  
                   throw new HttpException(
-                    error.response.data || `Failed to ${operation}`,
-                    error.response.status || HttpStatus.INTERNAL_SERVER_ERROR,
+                    errorData || `Failed to ${operation}`,
+                    statusCode,
                   );
                 }
                 if (error.name === 'TimeoutError') {

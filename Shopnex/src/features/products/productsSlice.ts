@@ -14,6 +14,7 @@ export type Product = {
 
 type ProductsState = {
   items: Product[];
+  currentProduct: Product | null;
   total: number;
   page: number;
   limit: number;
@@ -24,6 +25,7 @@ type ProductsState = {
 
 const initialState: ProductsState = {
   items: [],
+  currentProduct: null,
   total: 0,
   page: 1,
   limit: 20,
@@ -56,6 +58,18 @@ export const fetchProducts = createAsyncThunk(
         page: typeof data?.page === 'number' ? data.page : 1,
         limit: typeof data?.limit === 'number' ? data.limit : items.length || 20,
       };
+    } catch (e: any) {
+      return rejectWithValue(e?.response?.data?.message ?? e?.message ?? 'Không tải được sản phẩm');
+    }
+  },
+);
+
+export const getProductById = createAsyncThunk(
+  'products/getById',
+  async (productId: string, { rejectWithValue }) => {
+    try {
+      const res = await api.get(`/products/${productId}`);
+      return res.data as Product;
     } catch (e: any) {
       return rejectWithValue(e?.response?.data?.message ?? e?.message ?? 'Không tải được sản phẩm');
     }
@@ -99,6 +113,19 @@ const productsSlice = createSlice({
             : s.items.length || 20;
       })
       .addCase(fetchProducts.rejected, (s, a) => {
+        s.status = 'failed';
+        s.error = String(a.payload ?? a.error.message ?? 'Không tải được sản phẩm');
+      })
+      // Get product by ID
+      .addCase(getProductById.pending, (s) => {
+        s.status = 'loading';
+        s.error = null;
+      })
+      .addCase(getProductById.fulfilled, (s, a) => {
+        s.status = 'idle';
+        s.currentProduct = a.payload;
+      })
+      .addCase(getProductById.rejected, (s, a) => {
         s.status = 'failed';
         s.error = String(a.payload ?? a.error.message ?? 'Không tải được sản phẩm');
       });
