@@ -8,7 +8,7 @@ import { UserDevice } from './src/database/entities/user-device.entity';
 export default new DataSource({
   type: 'postgres',
   host: process.env.AUTH_DB_HOST || 'localhost',
-  port: +(process.env.AUTH_DB_PORT || 5432),
+  port: +(process.env.AUTH_DB_PORT || 5433),
   username: process.env.AUTH_DB_USER || 'auth_user',
   password: process.env.AUTH_DB_PASSWORD || 'auth_password',
   database: process.env.AUTH_DB_NAME || 'auth_db',

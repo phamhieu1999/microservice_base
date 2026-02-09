@@ -115,6 +115,70 @@ export async function initializeSchema(client: ClickHouseClient) {
       ORDER BY user_id`,
     });
 
+    // Dimension: dim_user_activity (aggregated user metrics from multiple events)
+    console.log('  👤 Creating dim_user_activity table...');
+    await client.command({
+      query: `CREATE TABLE IF NOT EXISTS dim_user_activity
+      (
+        user_id String,
+        email String,
+        role String,
+        first_order_date Nullable(Date),
+        last_order_datetime Nullable(DateTime),
+        total_orders UInt64,
+        total_order_amount Decimal(18, 2),
+        last_payment_datetime Nullable(DateTime),
+        total_paid_amount Decimal(18, 2),
+        loyalty_points Int64,
+        updated_at DateTime DEFAULT now()
+      )
+      ENGINE = ReplacingMergeTree(updated_at)
+      ORDER BY user_id`,
+    });
+
+    // Dimension: dim_seller_activity (aggregated seller metrics from order, payment, settlement events)
+    console.log('  🏪 Creating dim_seller_activity table...');
+    await client.command({
+      query: `CREATE TABLE IF NOT EXISTS dim_seller_activity
+      (
+        seller_id String,
+        total_orders UInt64,
+        total_order_amount Decimal(18, 2),
+        total_paid_amount Decimal(18, 2),
+        total_net_revenue Decimal(18, 2),
+        total_commission Decimal(18, 2),
+        total_payout_amount Decimal(18, 2),
+        first_order_date Nullable(Date),
+        last_order_datetime Nullable(DateTime),
+        last_settlement_datetime Nullable(DateTime),
+        updated_at DateTime DEFAULT now()
+      )
+      ENGINE = ReplacingMergeTree(updated_at)
+      ORDER BY seller_id`,
+    });
+
+    // Dimension: dim_product_activity (aggregated product metrics from order, product events)
+    console.log('  📦 Creating dim_product_activity table...');
+    await client.command({
+      query: `CREATE TABLE IF NOT EXISTS dim_product_activity
+      (
+        product_id String,
+        name String,
+        category String,
+        brand String,
+        seller_id String,
+        price Decimal(10, 2),
+        total_sold UInt64,
+        total_revenue Decimal(18, 2),
+        total_orders UInt64,
+        first_sold_date Nullable(Date),
+        last_sold_datetime Nullable(DateTime),
+        updated_at DateTime DEFAULT now()
+      )
+      ENGINE = ReplacingMergeTree(updated_at)
+      ORDER BY product_id`,
+    });
+
     // Dimension: dim_product
     console.log('  📦 Creating dim_product table...');
     await client.command({

@@ -6,6 +6,8 @@ import { InventoryModule } from './inventory/inventory.module';
 import { KafkaModule } from '../kafka/kafka.module';
 import { CacheModule } from '../common/cache/cache.module';
 import { OrderEventsConsumer } from '../kafka/order-events.consumer';
+import { ReserveStockRequestConsumer } from '../kafka/reserve-stock-request.consumer';
+import { OrderPrepareRequestConsumer } from '../kafka/order-prepare-request.consumer';
 import { HealthController } from '../common/health.controller';
 
 @Module({
@@ -25,7 +27,7 @@ import { HealthController } from '../common/health.controller';
     InventoryModule,
   ],
   controllers: [HealthController],
-  providers: [OrderEventsConsumer],
+  providers: [OrderEventsConsumer, ReserveStockRequestConsumer, OrderPrepareRequestConsumer],
 })
 export class AppModule {}
 

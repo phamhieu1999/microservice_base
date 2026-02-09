@@ -281,16 +281,20 @@ export class WarehouseConsumer implements OnModuleInit, OnModuleDestroy {
   // Batch handlers để tối ưu performance
   private async handleOrderCreatedBatch(events: any[]) {
     const orderFacts = [];
+    const userIds = new Set<string>();
+    const sellerIds = new Set<string>();
+    const productIds = new Set<string>();
     
     for (const event of events) {
       const orderDate = event.createdAt ? new Date(event.createdAt) : new Date();
       
       if (event.items && Array.isArray(event.items)) {
         for (const item of event.items) {
+          const sid = item.sellerId || event.sellerId;
           orderFacts.push({
             orderId: event.orderId || event.id,
             userId: event.userId,
-            sellerId: item.sellerId || event.sellerId,
+            sellerId: sid,
             productId: item.productId,
             orderGroupId: event.orderGroupId,
             voucherId: event.voucherId,
@@ -300,6 +304,8 @@ export class WarehouseConsumer implements OnModuleInit, OnModuleDestroy {
             status: event.status || 'PENDING',
             orderDate,
           });
+          if (sid) sellerIds.add(sid);
+          if (item.productId) productIds.add(item.productId);
         }
       } else {
         orderFacts.push({
@@ -314,23 +320,45 @@ export class WarehouseConsumer implements OnModuleInit, OnModuleDestroy {
           status: event.status || 'PENDING',
           orderDate,
         });
+        if (event.sellerId) sellerIds.add(event.sellerId);
+      }
+
+      if (event.userId) {
+        userIds.add(event.userId);
       }
     }
 
     // Batch insert
     if (orderFacts.length > 0) {
       await this.warehouseService.batchInsertOrderFacts(orderFacts);
+
+      // Rebuild dim_user_activity for affected users
+      await Promise.allSettled(
+        Array.from(userIds).map(userId => this.warehouseService.rebuildUserActivity(userId)),
+      );
+      // Rebuild dim_seller_activity for affected sellers
+      await Promise.allSettled(
+        Array.from(sellerIds).map(sid => this.warehouseService.rebuildSellerActivity(sid)),
+      );
+      // Rebuild dim_product_activity for affected products
+      await Promise.allSettled(
+        Array.from(productIds).map(pid => this.warehouseService.rebuildProductActivity(pid)),
+      );
     }
   }
 
   private async handlePaymentSuccessBatch(events: any[]) {
+    const userIds = new Set<string>();
+    const sellerIds = new Set<string>();
     const paymentFacts = events.map(event => {
       const paymentDate = event.createdAt ? new Date(event.createdAt) : new Date();
+      if (event.userId) userIds.add(event.userId);
+      if (event.sellerId) sellerIds.add(event.sellerId);
       return {
         paymentId: event.paymentId || event.id,
         orderId: event.orderId,
         userId: event.userId,
-        sellerId: event.sellerId, // Add sellerId from event
+        sellerId: event.sellerId,
         amount: event.amount,
         fee: event.fee || 0,
         paymentMethod: event.method || event.paymentMethod || 'UNKNOWN',
@@ -341,11 +369,26 @@ export class WarehouseConsumer implements OnModuleInit, OnModuleDestroy {
     });
 
     await this.warehouseService.batchInsertPaymentFacts(paymentFacts);
+
+    // Rebuild dim_user_activity for affected users
+    if (userIds.size > 0) {
+      await Promise.allSettled(
+        Array.from(userIds).map(userId => this.warehouseService.rebuildUserActivity(userId)),
+      );
+    }
+    // Rebuild dim_seller_activity for affected sellers
+    if (sellerIds.size > 0) {
+      await Promise.allSettled(
+        Array.from(sellerIds).map(sid => this.warehouseService.rebuildSellerActivity(sid)),
+      );
+    }
   }
 
   private async handleSettlementUpdatedBatch(events: any[]) {
+    const sellerIds = new Set<string>();
     const settlementFacts = events.map(event => {
       const settlementDate = event.createdAt ? new Date(event.createdAt) : new Date();
+      if (event.sellerId) sellerIds.add(event.sellerId);
       return {
         settlementId: event.settlementId || `settlement_${Date.now()}_${Math.random()}`,
         sellerId: event.sellerId,
@@ -359,11 +402,22 @@ export class WarehouseConsumer implements OnModuleInit, OnModuleDestroy {
     });
 
     await this.warehouseService.batchInsertSettlementFacts(settlementFacts);
+
+    // Rebuild dim_seller_activity for affected sellers
+    if (sellerIds.size > 0) {
+      await Promise.allSettled(
+        Array.from(sellerIds).map(sid => this.warehouseService.rebuildSellerActivity(sid)),
+      );
+    }
   }
 
   private async handleLoyaltyPointsEarnedBatch(events: any[]) {
+    const userIds = new Set<string>();
     const loyaltyFacts = events.map(event => {
       const transactionDate = event.createdAt ? new Date(event.createdAt) : new Date();
+      if (event.userId) {
+        userIds.add(event.userId);
+      }
       return {
         transactionId: event.transactionId || event.id || `loyalty_${Date.now()}_${Math.random()}`,
         userId: event.userId,
@@ -376,6 +430,13 @@ export class WarehouseConsumer implements OnModuleInit, OnModuleDestroy {
     });
 
     await this.warehouseService.batchInsertLoyaltyFacts(loyaltyFacts);
+
+    // Rebuild dim_user_activity for affected users
+    if (userIds.size > 0) {
+      await Promise.allSettled(
+        Array.from(userIds).map(userId => this.warehouseService.rebuildUserActivity(userId)),
+      );
+    }
   }
 
   private async handleUserCreatedBatch(events: any[]) {
@@ -390,6 +451,16 @@ export class WarehouseConsumer implements OnModuleInit, OnModuleDestroy {
     });
 
     await this.warehouseService.batchUpsertUserDimensions(userDimensions);
+
+    // Rebuild dim_user_activity for affected users
+    const userIds = Array.from(
+      new Set(userDimensions.map(dim => dim.userId).filter((id): id is string => !!id)),
+    );
+    if (userIds.length > 0) {
+      await Promise.allSettled(
+        userIds.map(userId => this.warehouseService.rebuildUserActivity(userId)),
+      );
+    }
   }
 
   private async handleProductCreatedBatch(events: any[]) {
@@ -407,6 +478,16 @@ export class WarehouseConsumer implements OnModuleInit, OnModuleDestroy {
     });
 
     await this.warehouseService.batchUpsertProductDimensions(productDimensions);
+
+    // Rebuild dim_product_activity for affected products
+    const productIds = Array.from(
+      new Set(productDimensions.map(dim => dim.productId).filter((id): id is string => !!id)),
+    );
+    if (productIds.length > 0) {
+      await Promise.allSettled(
+        productIds.map(pid => this.warehouseService.rebuildProductActivity(pid)),
+      );
+    }
   }
 }
 

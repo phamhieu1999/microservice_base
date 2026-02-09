@@ -32,6 +32,11 @@ export class CreateOrderDto {
   @IsString()
   voucherId?: string;
 
+  /** Mã voucher (để validate qua Promotion – Request-Reply Pattern A) */
+  @IsOptional()
+  @IsString()
+  voucherCode?: string;
+
   @IsOptional()
   @IsNumber()
   discountAmount?: number;

@@ -17,10 +17,11 @@ async function seed() {
     console.log('🌱 Starting order data seeding...');
 
     // Clear existing data
-    await orderHistoryRepo.delete({});
-    await orderItemRepo.delete({});
-    const deleteResult = await orderRepo.delete({});
-    console.log(`🗑️  Cleared ${deleteResult.affected || 0} existing orders`);
+    // Dùng TRUNCATE ... CASCADE để xử lý quan hệ FK giữa orders, order_items, order_history
+    await dataSource.query(
+      'TRUNCATE TABLE "order_history", "order_items", "orders" RESTART IDENTITY CASCADE;',
+    );
+    console.log('🗑️  Cleared existing orders, order items and history (TRUNCATE CASCADE)');
 
     // Sample orders data
     const orders = [

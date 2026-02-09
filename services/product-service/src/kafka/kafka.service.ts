@@ -81,6 +81,30 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
       throw err;
     }
   }
+
+  /** Gửi message kèm headers (dùng cho Request-Reply reply) */
+  async emitWithHeaders(
+    topic: string,
+    payload: unknown,
+    headers: Record<string, string>,
+  ): Promise<void> {
+    if (!this.enabled) {
+      this.logger.debug(
+        `Kafka disabled, skip emit topic=${topic} payload=${JSON.stringify(payload)}`,
+      );
+      return;
+    }
+
+    try {
+      await this.producer.send({
+        topic,
+        messages: [{ value: JSON.stringify(payload), headers }],
+      });
+    } catch (err) {
+      this.logger.error(`Error emitting message to topic ${topic}: ${(err as Error).message}`);
+      throw err;
+    }
+  }
 }
 
 

@@ -26,6 +26,7 @@ export class OrderController {
       items: dto.items as any,
       orderGroupId: dto.orderGroupId,
       voucherId: dto.voucherId,
+      voucherCode: dto.voucherCode,
       discountAmount: dto.discountAmount,
       shippingFee: dto.shippingFee,
     });

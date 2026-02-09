@@ -27,7 +27,8 @@
     "class-validator": "^0.14.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.0",
-    "dotenv": "^16.4.0"
+    "dotenv": "^16.4.0",
+    "kafkajs": "^2.2.4"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
@@ -46,5 +47,3 @@
     "typescript": "^5.0.0"
   }
 }
-
-

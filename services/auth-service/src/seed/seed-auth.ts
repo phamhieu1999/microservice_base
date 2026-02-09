@@ -12,7 +12,9 @@ import { User } from '../database/entities/user.entity';
 const seedDataSource = new DataSource({
   type: 'postgres',
   host: process.env.AUTH_DB_HOST || 'localhost',
-  port: +(process.env.AUTH_DB_PORT || 5432),
+  // Ngoài Docker: postgres-auth được map 5433:5432 nên default là 5433
+  // Trong Docker: AUTH_DB_PORT=5432 từ docker-compose sẽ override.
+  port: +(process.env.AUTH_DB_PORT || 5433),
   username: process.env.AUTH_DB_USER || 'auth_user',
   password: process.env.AUTH_DB_PASSWORD || 'auth_password',
   database: process.env.AUTH_DB_NAME || 'auth_db',

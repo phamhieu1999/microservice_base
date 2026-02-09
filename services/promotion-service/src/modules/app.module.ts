@@ -4,6 +4,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Voucher } from '../database/entities/voucher.entity';
 import { VoucherUsage } from '../database/entities/voucher-usage.entity';
 import { PromotionModule } from './promotion/promotion.module';
+import { KafkaModule } from '../kafka/kafka.module';
+import { ValidateRequestConsumer } from '../kafka/validate-request.consumer';
+import { OrderPrepareRequestConsumer } from '../kafka/order-prepare-request.consumer';
 import { HealthController } from '../common/health.controller';
 import { MetricsController } from '../common/metrics.controller';
 import { MetricsService } from '../common/metrics.service';
@@ -13,6 +16,7 @@ import { MetricsMiddleware } from '../common/metrics.middleware';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    KafkaModule,
     TypeOrmModule.forRootAsync({
       useFactory: () => ({
         type: 'postgres',
@@ -41,7 +45,7 @@ import { MetricsMiddleware } from '../common/metrics.middleware';
     PromotionModule,
   ],
   controllers: [HealthController, MetricsController],
-  providers: [MetricsService, TracingService, MetricsMiddleware],
+  providers: [MetricsService, TracingService, MetricsMiddleware, ValidateRequestConsumer, OrderPrepareRequestConsumer],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

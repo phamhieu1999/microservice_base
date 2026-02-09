@@ -11,6 +11,7 @@ import { PromotionRepository } from './promotion.repository';
   imports: [TypeOrmModule.forFeature([Voucher, VoucherUsage])],
   controllers: [PromotionController, PromotionLoyaltyController],
   providers: [PromotionService, PromotionRepository],
+  exports: [PromotionService],
 })
 export class PromotionModule {}
 
