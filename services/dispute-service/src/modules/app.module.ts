@@ -16,12 +16,16 @@ import { MetricsMiddleware } from '../common/metrics.middleware';
       useFactory: () => ({
         type: 'postgres',
         host: process.env.DISPUTE_DB_HOST || 'localhost',
-        port: +(process.env.DISPUTE_DB_PORT || 5432),
+        // In docker-compose: postgres-dispute uses port 5432 (container), mapped to 5439 (host)
+        // When running in container: use 5432, when running from host: use 5439
+        port: +(process.env.DISPUTE_DB_PORT || (process.env.DISPUTE_DB_HOST === 'postgres-dispute' ? 5432 : 5439)),
         username: process.env.DISPUTE_DB_USER || 'dispute_user',
         password: process.env.DISPUTE_DB_PASSWORD || 'dispute_password',
         database: process.env.DISPUTE_DB_NAME || 'dispute_db',
         entities: [Dispute],
-        synchronize: true,
+        migrations: ['dist/migrations/*.js'],
+        migrationsRun: process.env.RUN_MIGRATIONS === 'true',
+        synchronize: process.env.NODE_ENV !== 'production' && process.env.SYNCHRONIZE === 'true',
         // Connection Pooling Configuration
         extra: {
           max: parseInt(process.env.DB_POOL_MAX || '20', 10), // Maximum pool size
@@ -30,6 +34,7 @@ import { MetricsMiddleware } from '../common/metrics.middleware';
           connectionTimeoutMillis: parseInt(process.env.DB_POOL_CONNECTION_TIMEOUT || '2000', 10),
         },
         poolSize: parseInt(process.env.DB_POOL_SIZE || '20', 10),
+        logging: process.env.NODE_ENV === 'development',
       }),
     }),
     DisputeModule,

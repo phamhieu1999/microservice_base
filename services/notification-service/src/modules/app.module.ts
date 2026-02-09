@@ -9,11 +9,25 @@ import { HealthController } from '../common/health.controller';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    MongooseModule.forRoot(process.env.NOTIFICATION_MONGO_URI || 'mongodb://mongo:27017/notification_db', {
+    MongooseModule.forRootAsync({
+      useFactory: () => {
+        // Hỗ trợ cả localhost và docker environment
+        const defaultUri = process.env.NODE_ENV === 'production' 
+          ? 'mongodb://mongo:27017/notification_db'
+          : 'mongodb://localhost:27017/notification_db';
+        
+        return {
+          uri: process.env.NOTIFICATION_MONGO_URI || defaultUri,
       maxPoolSize: parseInt(process.env.MONGO_POOL_MAX || '20', 10),
       minPoolSize: parseInt(process.env.MONGO_POOL_MIN || '5', 10),
       socketTimeoutMS: parseInt(process.env.MONGO_SOCKET_TIMEOUT || '45000', 10),
-      serverSelectionTimeoutMS: parseInt(process.env.MONGO_SERVER_SELECTION_TIMEOUT || '5000', 10),
+          serverSelectionTimeoutMS: parseInt(process.env.MONGO_SERVER_SELECTION_TIMEOUT || '30000', 10),
+          retryWrites: true,
+          retryReads: true,
+          connectTimeoutMS: parseInt(process.env.MONGO_CONNECT_TIMEOUT || '30000', 10),
+          heartbeatFrequencyMS: 10000,
+        };
+      },
     }),
     KafkaModule,
     NotificationModule,

@@ -2,7 +2,7 @@ import { IsOptional, IsString } from 'class-validator';
 
 export class SendMessageDto {
   @IsString()
-  content: string;
+  content!: string;
 
   @IsOptional()
   @IsString()

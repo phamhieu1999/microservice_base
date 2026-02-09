@@ -37,11 +37,11 @@ export class CreateReferralUseCase {
     const referral = new Referral(
       uuidv4(),
       input.referrerId,
-      undefined,
       referralCode,
       0,
       0,
       true,
+      undefined, // referredId
       new Date(),
       new Date(),
     );

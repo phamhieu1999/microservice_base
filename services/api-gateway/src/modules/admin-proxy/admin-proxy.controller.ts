@@ -22,7 +22,7 @@ export class AdminProxyController {
   @Get('disputes/user/:userId')
   @ApiOperation({ summary: 'Admin get disputes of a user' })
   getUserDisputes(@Param('userId') userId: string) {
-    return this.adminService.listUserDisputes(userId);
+    return this.adminService.listDisputes({ userId });
   }
 
   @Get('disputes')

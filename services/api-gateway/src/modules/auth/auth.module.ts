@@ -14,7 +14,9 @@ import { ThrottlerGuard } from '@nestjs/throttler';
   providers: [
     JwtStrategy,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
-    { provide: APP_GUARD, useClass: RolesGuard },
+    // RolesGuard không dùng global để tránh chạy trước JwtAuthGuard (khi đó request.user chưa có).
+    // Sẽ được gắn vào từng route bằng @UseGuards(JwtAuthGuard, RolesGuard).
+    RolesGuard,
   ],
   exports: [JwtStrategy],
 })

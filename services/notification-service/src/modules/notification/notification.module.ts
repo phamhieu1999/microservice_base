@@ -6,10 +6,12 @@ import { NotificationController } from './notification.controller';
 import { EmailService } from './channels/email.service';
 import { SmsService } from './channels/sms.service';
 import { PushService } from './channels/push.service';
+import { AuthModule } from '../../auth/auth.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Notification.name, schema: NotificationSchema }]),
+    AuthModule,
   ],
   controllers: [NotificationController],
   providers: [NotificationService, EmailService, SmsService, PushService],

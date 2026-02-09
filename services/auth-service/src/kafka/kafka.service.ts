@@ -1,10 +1,16 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Kafka, Producer } from 'kafkajs';
 
 @Injectable()
 export class KafkaService implements OnModuleInit, OnModuleDestroy {
   private kafka: Kafka;
   private producer: Producer;
+  private readonly logger = new Logger(KafkaService.name);
+  /**
+   * Cho phép tắt Kafka trong môi trường dev/local
+   * bằng cách set KAFKA_ENABLED=false.
+   */
+  private readonly enabled = (process.env.KAFKA_ENABLED || 'true') !== 'false';
 
   constructor() {
     this.kafka = new Kafka({
@@ -15,14 +21,54 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
-    await this.producer.connect();
+    if (!this.enabled) {
+      this.logger.warn('Kafka disabled (KAFKA_ENABLED=false), skip connect');
+      return;
+    }
+
+    // Retry logic với exponential backoff
+    const maxRetries = 5;
+    let retryCount = 0;
+    let connected = false;
+
+    while (retryCount < maxRetries && !connected) {
+      try {
+        await this.producer.connect();
+        connected = true;
+        this.logger.log('Kafka producer connected');
+      } catch (err) {
+        retryCount++;
+        if (retryCount < maxRetries) {
+          const backoffMs = Math.min(1000 * Math.pow(2, retryCount - 1), 10000);
+          this.logger.warn(
+            `Kafka connect failed (attempt ${retryCount}/${maxRetries}): ${(err as Error).message}. Retrying in ${backoffMs}ms...`,
+          );
+          await new Promise(resolve => setTimeout(resolve, backoffMs));
+        } else {
+          this.logger.error(
+            `Kafka connect failed after ${maxRetries} attempts: ${(err as Error).message}. Service will continue without Kafka.`,
+          );
+          // Không throw error để service vẫn có thể khởi động
+        }
+      }
+    }
   }
 
   async onModuleDestroy() {
+    if (!this.enabled) return;
     await this.producer.disconnect();
   }
 
   async emit(topic: string, payload: unknown) {
+    if (!this.enabled) {
+      this.logger.debug(
+        `Kafka disabled, skip emit topic=${topic} payload=${JSON.stringify(
+          payload,
+        )}`,
+      );
+      return;
+    }
+
     await this.producer.send({
       topic,
       messages: [{ value: JSON.stringify(payload) }],

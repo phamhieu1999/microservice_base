@@ -40,5 +40,15 @@ export class SearchProxyService {
     );
     return res.data;
   }
+
+  async forwardAutocomplete(query: string, limit?: number) {
+    const params: any = { q: query };
+    if (limit) params.limit = limit;
+
+    const res = await firstValueFrom(
+      this.http.get(`${this.searchBaseUrl}/search/autocomplete`, { params }),
+    );
+    return res.data;
+  }
 }
 

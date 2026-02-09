@@ -17,9 +17,14 @@ async function bootstrap() {
   );
 
   // Setup Swagger
-  setupSwagger(app);
+  const swaggerPath = setupSwagger(app);
 
-  await app.listen(process.env.PORT || 3013);
+  const port = process.env.PORT || 3013;
+  await app.listen(port);
+
+  const baseUrl = `http://localhost:${port}`;
+  console.log(`\n🚀 DLQ Service is running on: ${baseUrl}`);
+  console.log(`📚 Swagger documentation: ${baseUrl}${swaggerPath}\n`);
 }
 
 bootstrap();

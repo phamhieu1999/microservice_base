@@ -33,23 +33,11 @@ export class HealthCheckService {
    */
   async checkKafka(): Promise<{ status: 'ok' | 'error'; message?: string }> {
     try {
-      // Try to ping producer connection
-      const producer = this.kafka['producer'];
-      if (producer && producer.isConnected && producer.isConnected()) {
+      const isHealthy = await this.kafka.checkHealth();
+      if (isHealthy) {
         return { status: 'ok' };
       }
-      
-      // Fallback: try to create a test admin client
-      const kafkaInstance = this.kafka['kafka'];
-      if (kafkaInstance) {
-        const admin = kafkaInstance.admin();
-        await admin.connect();
-        await admin.listTopics();
-        await admin.disconnect();
-        return { status: 'ok' };
-      }
-      
-      return { status: 'error', message: 'Kafka client not initialized' };
+      return { status: 'error', message: 'Kafka client not initialized or connection failed' };
     } catch (error) {
       this.logger.error('Kafka health check failed', error);
       return {

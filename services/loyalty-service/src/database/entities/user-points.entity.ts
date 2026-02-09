@@ -5,18 +5,18 @@ export type LoyaltyTier = 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM';
 @Entity({ name: 'user_points' })
 export class UserPoints {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Index({ unique: true })
   @Column()
-  userId: string;
+  userId!: string;
 
   @Column({ type: 'int', default: 0 })
-  balance: number;
+  balance!: number;
 
   @Column({ type: 'varchar', length: 20, default: 'BRONZE' })
-  tier: LoyaltyTier;
+  tier!: LoyaltyTier;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  updatedAt: Date;
+  updatedAt!: Date;
 }

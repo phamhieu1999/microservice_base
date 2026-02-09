@@ -83,32 +83,24 @@ export class CreatePaymentsTable1700000000001 implements MigrationInterface {
       true,
     );
 
-    await queryRunner.createIndex(
-      'payments',
-      new TableIndex({
-        name: 'IDX_PAYMENTS_ORDER_ID',
-        columnNames: ['orderId'],
-      }),
-    );
+    // Đảm bảo idempotent: dùng CREATE INDEX IF NOT EXISTS
+    await queryRunner.query(`
+      CREATE INDEX IF NOT EXISTS "IDX_PAYMENTS_ORDER_ID" ON "payments" ("orderId");
+    `);
 
-    await queryRunner.createIndex(
-      'payments',
-      new TableIndex({
-        name: 'IDX_PAYMENTS_STATUS',
-        columnNames: ['status'],
-      }),
-    );
+    await queryRunner.query(`
+      CREATE INDEX IF NOT EXISTS "IDX_PAYMENTS_STATUS" ON "payments" ("status");
+    `);
 
-    await queryRunner.createIndex(
-      'payments',
-      new TableIndex({
-        name: 'IDX_PAYMENTS_IDEMPOTENCY_KEY',
-        columnNames: ['idempotencyKey'],
-      }),
-    );
+    await queryRunner.query(`
+      CREATE INDEX IF NOT EXISTS "IDX_PAYMENTS_IDEMPOTENCY_KEY" ON "payments" ("idempotencyKey");
+    `);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_PAYMENTS_ORDER_ID";`);
+    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_PAYMENTS_STATUS";`);
+    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_PAYMENTS_IDEMPOTENCY_KEY";`);
     await queryRunner.dropTable('payments');
   }
 }

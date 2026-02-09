@@ -1,10 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { OrderModule } from '../src/modules/order/order.module';
 import { CreateOrderUseCase } from '../src/application/order/use-cases/create-order.usecase';
 import { GetOrderUseCase } from '../src/application/order/use-cases/get-order.usecase';
 import { CancelOrderUseCase } from '../src/application/order/use-cases/cancel-order.usecase';
+import { KafkaService } from '../src/kafka/kafka.service';
+import { KafkaModule } from '../src/kafka/kafka.module';
+import { PaymentEventsConsumer } from '../src/kafka/payment-events.consumer';
+import { MarkPaidUseCase } from '../src/application/order/use-cases/mark-paid.usecase';
+import { MarkCancelledUseCase } from '../src/application/order/use-cases/mark-cancelled.usecase';
+import { Order } from '../src/database/entities/order.entity';
+import { OrderItem } from '../src/database/entities/order-item.entity';
+import { OrderHistory } from '../src/database/entities/order-history.entity';
 
 describe('Order Integration (e2e)', () => {
   let app: INestApplication;
@@ -14,7 +23,16 @@ describe('Order Integration (e2e)', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [OrderModule],
+      imports: [
+        TypeOrmModule.forRoot({
+          type: 'sqlite',
+          database: ':memory:',
+          entities: [Order, OrderItem, OrderHistory],
+          synchronize: true,
+        }),
+        KafkaModule,
+        OrderModule,
+      ],
     })
       .overrideProvider(CreateOrderUseCase)
       .useValue({
@@ -39,6 +57,22 @@ describe('Order Integration (e2e)', () => {
       .useValue({
         execute: jest.fn().mockResolvedValue(undefined),
       })
+      .overrideProvider(KafkaService)
+      .useValue({
+        emit: jest.fn().mockResolvedValue(undefined),
+      })
+      .overrideProvider(MarkPaidUseCase)
+      .useValue({
+        execute: jest.fn(),
+      })
+      .overrideProvider(MarkCancelledUseCase)
+      .useValue({
+        execute: jest.fn(),
+      })
+      .overrideProvider(PaymentEventsConsumer)
+      .useValue({
+        onModuleInit: jest.fn(),
+      })
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -58,7 +92,7 @@ describe('Order Integration (e2e)', () => {
         ],
       })
       .expect(201)
-      .expect((res) => {
+      .expect((res: any) => {
         expect(res.body.id).toBeDefined();
         expect(res.body.status).toBe('PENDING');
       });
@@ -68,7 +102,7 @@ describe('Order Integration (e2e)', () => {
     return request(app.getHttpServer())
       .get('/orders/order-123')
       .expect(200)
-      .expect((res) => {
+      .expect((res: any) => {
         expect(res.body.id).toBe('order-123');
       });
   });
@@ -77,8 +111,8 @@ describe('Order Integration (e2e)', () => {
     return request(app.getHttpServer())
       .post('/orders/order-123/cancel')
       .send({ reason: 'User cancelled' })
-      .expect(200)
-      .expect((res) => {
+      .expect(201)
+      .expect((res: any) => {
         expect(res.body.success).toBe(true);
       });
   });

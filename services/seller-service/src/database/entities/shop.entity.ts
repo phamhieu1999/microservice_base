@@ -4,16 +4,16 @@ import { Seller } from './seller.entity';
 @Entity({ name: 'shops' })
 export class Shop {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @ManyToOne(() => Seller, (seller) => seller.shops)
-  seller: Seller;
+  seller!: Seller;
 
   @Column()
-  sellerId: string;
+  sellerId!: string;
 
   @Column()
-  name: string;
+  name!: string;
 
   @Column({ nullable: true })
   avatarUrl?: string;
@@ -22,7 +22,7 @@ export class Shop {
   address?: string;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 }
 
 

@@ -12,6 +12,8 @@
     "baseUrl": "./",
     "incremental": true,
     "strict": true,
+    "strictPropertyInitialization": false,
+    "skipLibCheck": true,
     "moduleResolution": "node",
     "esModuleInterop": true
   },

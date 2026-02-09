@@ -3,9 +3,10 @@ import { HttpModule } from '@nestjs/axios';
 import { CartProxyController } from './cart-proxy.controller';
 import { CartProxyService } from './cart-proxy.service';
 import { AuthModule } from '../auth/auth.module';
+import { CircuitBreakerModule } from '../../common/circuit-breaker/circuit-breaker.module';
 
 @Module({
-  imports: [HttpModule, AuthModule],
+  imports: [HttpModule, AuthModule, CircuitBreakerModule],
   controllers: [CartProxyController],
   providers: [CartProxyService],
 })

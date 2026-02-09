@@ -43,9 +43,8 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
 
     this.kafka = new Kafka(kafkaConfig);
 
-    // Producer với compression và retry mechanism
+    // Producer với retry mechanism
     this.producer = this.kafka.producer({
-      compression: CompressionTypes.GZIP, // Compress messages để giảm bandwidth
       maxInFlightRequests: 5,
       idempotent: true, // Exactly-once semantics
       retry: {
@@ -57,8 +56,42 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
-    await this.producer.connect();
-    this.logger.log('Kafka producer connected with compression enabled');
+    try {
+      // Test connection với retry logic
+      const maxRetries = 5;
+      let retryCount = 0;
+      let connected = false;
+
+      while (retryCount < maxRetries && !connected) {
+        try {
+          await this.producer.connect();
+          connected = true;
+          this.logger.log('Kafka producer connected');
+        } catch (error) {
+          retryCount++;
+          if (retryCount < maxRetries) {
+            const backoffMs = Math.min(1000 * Math.pow(2, retryCount - 1), 10000);
+            this.logger.warn(
+              `Failed to connect Kafka producer (attempt ${retryCount}/${maxRetries}). Retrying in ${backoffMs}ms...`,
+              error instanceof Error ? error.message : 'Unknown error'
+            );
+            await new Promise(resolve => setTimeout(resolve, backoffMs));
+          } else {
+            this.logger.error(
+              `Failed to connect Kafka producer after ${maxRetries} attempts. Service will continue but Kafka features will be unavailable.`,
+              error instanceof Error ? error.message : 'Unknown error'
+            );
+            // Không throw error để service vẫn có thể khởi động
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.error(
+        'Error initializing Kafka service',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+      // Không throw error để service vẫn có thể khởi động
+    }
   }
 
   async onModuleDestroy() {
@@ -94,7 +127,6 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
         initialRetryTime: 100,
         multiplier: 2,
         maxRetryTime: 30000,
-        retryForever: false,
       },
     });
   }
@@ -109,6 +141,32 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(`Failed to emit message to topic ${topic}`, error);
       throw error;
     }
+  }
+
+  /**
+   * Check Kafka connection health
+   */
+  async checkHealth(): Promise<boolean> {
+    try {
+      if (!this.kafka || !this.producer) {
+        return false;
+      }
+      const admin = this.kafka.admin();
+      await admin.connect();
+      await admin.listTopics();
+      await admin.disconnect();
+      return true;
+    } catch (error) {
+      this.logger.error('Kafka health check failed', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get Kafka instance (for internal use)
+   */
+  getKafkaInstance(): Kafka | null {
+    return this.kafka || null;
   }
 }
 

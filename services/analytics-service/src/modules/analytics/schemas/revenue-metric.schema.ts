@@ -5,7 +5,7 @@ export type RevenueMetricDocument = RevenueMetric & Document;
 
 @Schema({ timestamps: true })
 export class RevenueMetric {
-  @Prop({ required: true, index: true })
+  @Prop({ required: true })
   date: Date; // YYYY-MM-DD format
 
   @Prop({ required: true, default: 0 })
@@ -23,6 +23,5 @@ export class RevenueMetric {
 
 export const RevenueMetricSchema = SchemaFactory.createForClass(RevenueMetric);
 
-// Indexes for efficient queries
-RevenueMetricSchema.index({ date: 1, period: 1 });
+// Indexes are created via migration script for better control
 

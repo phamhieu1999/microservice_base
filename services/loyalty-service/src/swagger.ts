@@ -3,10 +3,11 @@ import { INestApplication } from '@nestjs/common';
 
 export function setupSwagger(app: INestApplication) {
   const config = new DocumentBuilder()
-    .setTitle('Order Service API')
-    .setDescription('Order Management Service API Documentation')
+    .setTitle('Loyalty Service API')
+    .setDescription('Loyalty Points and Referral Management Service API Documentation')
     .setVersion('1.0')
-    .addTag('orders', 'Order management endpoints')
+    .addTag('loyalty', 'Loyalty points management endpoints')
+    .addTag('referral', 'Referral code management endpoints')
     .addBearerAuth(
       {
         type: 'http',

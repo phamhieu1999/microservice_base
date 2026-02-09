@@ -4,16 +4,16 @@ import { Document } from 'mongoose';
 @Schema({ timestamps: true })
 export class Message extends Document {
   @Prop({ required: true })
-  conversationId: string;
+  conversationId!: string;
 
   @Prop({ required: true })
-  senderId: string;
+  senderId!: string;
 
   @Prop({ required: true })
-  content: string;
+  content!: string;
 
   @Prop({ required: true, default: 'TEXT' })
-  type: 'TEXT' | 'IMAGE';
+  type!: 'TEXT' | 'IMAGE';
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);

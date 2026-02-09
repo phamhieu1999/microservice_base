@@ -27,10 +27,10 @@ export type OrderStatus =
 @Entity({ name: 'orders' })
 export class Order {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column()
-  userId: string;
+  userId!: string;
 
   @Column({ nullable: true })
   orderGroupId?: string;
@@ -45,10 +45,10 @@ export class Order {
   shippingFee?: number;
 
   @Column({ type: 'decimal' })
-  totalAmount: number;
+  totalAmount!: number;
 
   @Column({ type: 'varchar', default: 'PENDING' })
-  status: OrderStatus;
+  status!: OrderStatus;
 
   @Column({ nullable: true })
   cancellationReason?: string;
@@ -69,13 +69,13 @@ export class Order {
   deliveredAt?: Date;
 
   @OneToMany(() => OrderItem, (item) => item.order, { cascade: true })
-  items: OrderItem[];
+  items!: OrderItem[];
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }
 
 

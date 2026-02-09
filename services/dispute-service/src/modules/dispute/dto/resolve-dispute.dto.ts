@@ -5,12 +5,12 @@ export class ResolveDisputeDto {
   @ApiProperty({ description: 'Admin user id who resolves' })
   @IsString()
   @IsNotEmpty()
-  actorId: string;
+  actorId!: string;
 
   @ApiProperty({ enum: ['RESOLVED', 'REJECTED'] })
   @IsString()
   @IsIn(['RESOLVED', 'REJECTED'])
-  decision: 'RESOLVED' | 'REJECTED';
+  decision!: 'RESOLVED' | 'REJECTED';
 
   @ApiProperty({ required: false })
   @IsOptional()

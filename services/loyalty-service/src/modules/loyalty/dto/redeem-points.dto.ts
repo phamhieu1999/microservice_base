@@ -5,7 +5,7 @@ export class RedeemPointsDto {
   @ApiProperty({ description: 'Number of points to redeem', example: 1000 })
   @IsInt()
   @IsPositive()
-  points: number;
+  points!: number;
 
   @ApiProperty({ description: 'Voucher ID if redeeming for voucher', required: false })
   @IsOptional()

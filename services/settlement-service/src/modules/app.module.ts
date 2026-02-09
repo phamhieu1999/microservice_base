@@ -18,7 +18,7 @@ import { MetricsMiddleware } from '../common/metrics.middleware';
       useFactory: () => ({
         type: 'postgres',
         host: process.env.SETTLEMENT_DB_HOST || 'localhost',
-        port: +(process.env.SETTLEMENT_DB_PORT || 5432),
+        port: +(process.env.SETTLEMENT_DB_PORT || 5440), // Port 5440 from docker-compose mapping
         username: process.env.SETTLEMENT_DB_USER || 'settlement_user',
         password: process.env.SETTLEMENT_DB_PASSWORD || 'settlement_password',
         database: process.env.SETTLEMENT_DB_NAME || 'settlement_db',

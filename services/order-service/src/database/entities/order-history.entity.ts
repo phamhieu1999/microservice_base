@@ -5,16 +5,16 @@ import { OrderStatus } from './order.entity';
 @Entity({ name: 'order_history' })
 export class OrderHistory {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @ManyToOne(() => Order)
-  order: Order;
+  order!: Order;
 
   @Column()
-  orderId: string;
+  orderId!: string;
 
   @Column({ type: 'varchar' })
-  status: OrderStatus;
+  status!: OrderStatus;
 
   @Column({ nullable: true })
   changedBy?: string; // userId
@@ -23,5 +23,5 @@ export class OrderHistory {
   note?: string;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 }

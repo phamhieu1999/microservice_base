@@ -6,19 +6,19 @@ export type NotificationDocument = Notification & Document;
 @Schema({ timestamps: true })
 export class Notification extends Document {
   @Prop({ required: true })
-  userId: string;
+  userId!: string;
 
   @Prop({ required: true })
-  type: string; // 'ORDER_CREATED' | 'PAYMENT_SUCCESS' | 'PAYMENT_FAILED' | 'MESSAGE_RECEIVED'
+  type!: string; // 'ORDER_CREATED' | 'PAYMENT_SUCCESS' | 'PAYMENT_FAILED' | 'MESSAGE_RECEIVED'
 
   @Prop({ required: true })
-  title: string;
+  title!: string;
 
   @Prop({ required: true })
-  content: string;
+  content!: string;
 
   @Prop({ default: false })
-  read: boolean;
+  read!: boolean;
 
   @Prop({ type: Object, default: {} })
   metadata?: Record<string, any>; // orderId, paymentId, etc.

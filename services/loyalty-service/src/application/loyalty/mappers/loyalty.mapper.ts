@@ -1,84 +1,105 @@
 import { UserPoints as UserPointsDomain } from '../../../domain/loyalty/user-points.entity';
-import { UserPoints as UserPointsOrm } from '../../../database/entities/user-points.entity';
+import { UserPoints as UserPointsOrm, LoyaltyTier } from '../../../database/entities/user-points.entity';
 import { PointTransaction as PointTransactionDomain } from '../../../domain/loyalty/point-transaction.entity';
-import { PointTransaction as PointTransactionOrm } from '../../../database/entities/point-transaction.entity';
+import { PointTransaction as PointTransactionOrm, PointTransactionType } from '../../../database/entities/point-transaction.entity';
 import { Referral as ReferralDomain } from '../../../domain/referral/referral.entity';
 import { Referral as ReferralOrm } from '../../../database/entities/referral.entity';
 
+// Map ORM UserPoints to Domain UserPoints
 export function ormToDomainUserPoints(orm: UserPointsOrm): UserPointsDomain {
   return new UserPointsDomain(
     orm.userId,
-    orm.totalPoints,
-    orm.availablePoints,
+    orm.balance, // totalPoints = balance
+    orm.balance, // availablePoints = balance
     orm.tier,
-    orm.lifetimePoints,
+    orm.balance, // lifetimePoints = balance (simplified)
   );
 }
 
+// Map Domain UserPoints to ORM UserPoints
 export function domainToOrmUserPoints(domain: UserPointsDomain): Partial<UserPointsOrm> {
   return {
     userId: domain.userId,
-    totalPoints: domain.totalPoints,
-    availablePoints: domain.availablePoints,
-    tier: domain.tier,
-    lifetimePoints: domain.lifetimePoints,
+    balance: domain.availablePoints,
+    tier: domain.tier as LoyaltyTier,
   };
 }
 
+// Map ORM PointTransaction to Domain PointTransaction
 export function ormToDomainTransaction(orm: PointTransactionOrm): PointTransactionDomain {
+  // Map PointTransactionType to TransactionType
+  const typeMap: Record<PointTransactionType, 'EARNED' | 'REDEEMED' | 'EXPIRED' | 'REFUNDED'> = {
+    EARN: 'EARNED',
+    REDEEM: 'REDEEMED',
+    ADJUST: 'EARNED',
+    REFERRAL: 'EARNED',
+  };
+
+  const sourceMap: Record<string, 'PURCHASE' | 'REFERRAL' | 'BONUS' | 'REDEMPTION' | 'REFUND'> = {
+    ORDER: 'PURCHASE',
+    REFERRAL: 'REFERRAL',
+    PROMO: 'BONUS',
+    REDEEM: 'REDEMPTION',
+    ADMIN: 'BONUS',
+  };
+
   return new PointTransactionDomain(
     orm.id,
     orm.userId,
     orm.points,
-    orm.type,
-    orm.source,
-    orm.description,
-    orm.orderId,
-    orm.paymentId,
-    orm.referralId,
-    orm.voucherId,
-    orm.expiresAt,
+    typeMap[orm.type] || 'EARNED',
+    sourceMap[orm.source || ''] || 'BONUS',
+    undefined, // description
+    orm.referenceId, // orderId
+    undefined, // paymentId
+    orm.referenceId, // referralId (if source is REFERRAL)
+    undefined, // voucherId
+    undefined, // expiresAt
     orm.createdAt,
   );
 }
 
+// Map Domain PointTransaction to ORM PointTransaction
 export function domainToOrmTransaction(domain: PointTransactionDomain): Partial<PointTransactionOrm> {
+  const typeMap: Record<'EARNED' | 'REDEEMED' | 'EXPIRED' | 'REFUNDED', PointTransactionType> = {
+    EARNED: 'EARN',
+    REDEEMED: 'REDEEM',
+    EXPIRED: 'ADJUST',
+    REFUNDED: 'ADJUST',
+  };
+
   return {
     userId: domain.userId,
     points: domain.points,
-    type: domain.type,
+    type: typeMap[domain.type] || 'EARN',
     source: domain.source,
-    description: domain.description,
-    orderId: domain.orderId,
-    paymentId: domain.paymentId,
-    referralId: domain.referralId,
-    voucherId: domain.voucherId,
-    expiresAt: domain.expiresAt,
+    referenceId: domain.orderId || domain.referralId || domain.voucherId,
   };
 }
 
+// Map ORM Referral to Domain Referral
 export function ormToDomainReferral(orm: ReferralOrm): ReferralDomain {
   return new ReferralDomain(
     orm.id,
-    orm.referrerId,
-    orm.referredId,
+    orm.referrerUserId,
     orm.referralCode,
-    orm.pointsEarned,
-    orm.totalReferrals,
-    orm.isActive,
+    orm.pointsAwarded,
+    0, // totalReferrals (not in ORM)
+    orm.status === 'COMPLETED', // isActive
+    orm.referredUserId,
     orm.createdAt,
-    orm.updatedAt,
+    orm.completedAt,
   );
 }
 
+// Map Domain Referral to ORM Referral
 export function domainToOrmReferral(domain: ReferralDomain): Partial<ReferralOrm> {
   return {
-    referrerId: domain.referrerId,
-    referredId: domain.referredId,
+    referrerUserId: domain.referrerId,
+    referredUserId: domain.referredId,
     referralCode: domain.referralCode,
-    pointsEarned: domain.pointsEarned,
-    totalReferrals: domain.totalReferrals,
-    isActive: domain.isActive,
+    pointsAwarded: domain.pointsEarned,
+    status: domain.isActive ? 'COMPLETED' : 'PENDING',
   };
 }
 

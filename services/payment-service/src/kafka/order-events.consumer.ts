@@ -16,20 +16,26 @@ export class OrderEventsConsumer implements OnModuleInit {
   }
 
   async onModuleInit() {
-    await this.consumer.connect();
-    await this.consumer.subscribe({ topic: 'order.created', fromBeginning: true });
+    try {
+      await this.consumer.connect();
+      await this.consumer.subscribe({ topic: 'order.created', fromBeginning: true });
 
-    await this.consumer.run({
-      eachMessage: async ({ message }) => {
-        const payload = message.value ? JSON.parse(message.value.toString()) : null;
-        if (!payload) return;
-        try {
-          await this.processOrderCreated.execute(payload);
-        } catch (err) {
-          this.logger.error('Error handling order.created event', err as Error);
-        }
-      },
-    });
+      await this.consumer.run({
+        eachMessage: async ({ message }) => {
+          const payload = message.value ? JSON.parse(message.value.toString()) : null;
+          if (!payload) return;
+          try {
+            await this.processOrderCreated.execute(payload);
+          } catch (err) {
+            this.logger.error('Error handling order.created event', err as Error);
+          }
+        },
+      });
+      this.logger.log('Kafka consumer connected and subscribed to order.created');
+    } catch (error) {
+      this.logger.warn(`Failed to connect to Kafka: ${(error as Error).message}. Service will continue without Kafka consumer.`);
+      // Don't throw - allow service to start even if Kafka is unavailable
+    }
   }
 }
 

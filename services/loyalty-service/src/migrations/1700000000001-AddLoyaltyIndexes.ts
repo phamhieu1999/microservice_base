@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddLoyaltyIndexes1700000000001 implements MigrationInterface {
+export class AddLoyaltyIndexes1700000000002 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Indexes for user_points table (userId already has unique index from entity)
     await queryRunner.query(`
@@ -9,30 +9,30 @@ export class AddLoyaltyIndexes1700000000001 implements MigrationInterface {
 
     // Indexes for point_transactions table
     await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS idx_point_transactions_user_id ON point_transactions(user_id);
+      CREATE INDEX IF NOT EXISTS idx_point_transactions_user_id ON point_transactions("userId");
     `);
     await queryRunner.query(`
       CREATE INDEX IF NOT EXISTS idx_point_transactions_type ON point_transactions(type);
     `);
     await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS idx_point_transactions_user_id_type ON point_transactions(user_id, type);
+      CREATE INDEX IF NOT EXISTS idx_point_transactions_user_id_type ON point_transactions("userId", type);
     `);
     await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS idx_point_transactions_created_at ON point_transactions(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_point_transactions_created_at ON point_transactions("createdAt" DESC);
     `);
     await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS idx_point_transactions_reference_id ON point_transactions(reference_id) WHERE reference_id IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS idx_point_transactions_reference_id ON point_transactions("referenceId") WHERE "referenceId" IS NOT NULL;
     `);
 
     // Indexes for referrals table
     await queryRunner.query(`
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_referrals_referral_code ON referrals(referral_code);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_referrals_referral_code ON referrals("referralCode");
     `);
     await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS idx_referrals_referrer_user_id ON referrals(referrer_user_id);
+      CREATE INDEX IF NOT EXISTS idx_referrals_referrer_user_id ON referrals("referrerUserId");
     `);
     await queryRunner.query(`
-      CREATE INDEX IF NOT EXISTS idx_referrals_referred_user_id ON referrals(referred_user_id) WHERE referred_user_id IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS idx_referrals_referred_user_id ON referrals("referredUserId") WHERE "referredUserId" IS NOT NULL;
     `);
     await queryRunner.query(`
       CREATE INDEX IF NOT EXISTS idx_referrals_status ON referrals(status);

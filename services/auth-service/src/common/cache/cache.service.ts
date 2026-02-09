@@ -7,7 +7,9 @@ export class CacheService {
   constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) {}
 
   async get<T>(key: string): Promise<T | undefined> {
-    return this.cacheManager.get<T>(key);
+    const value = await this.cacheManager.get<T>(key);
+    // cache-manager can return null when the key does not exist
+    return value === null ? undefined : value;
   }
 
   async set(key: string, value: any, ttl?: number): Promise<void> {
@@ -19,7 +21,12 @@ export class CacheService {
   }
 
   async reset(): Promise<void> {
-    await this.cacheManager.reset();
+    // Not all cache-manager stores implement reset in the typings,
+    // so we guard and cast to avoid type errors while still supporting stores that do.
+    const cache: any = this.cacheManager as any;
+    if (typeof cache.reset === 'function') {
+      await cache.reset();
+    }
   }
 
   /**

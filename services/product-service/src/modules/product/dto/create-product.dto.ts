@@ -5,7 +5,7 @@ export class CreateProductDto {
   @ApiProperty({ description: 'Product name', example: 'iPhone 15 Pro', minLength: 3 })
   @IsString()
   @MinLength(3)
-  name: string;
+  name!: string;
 
   @ApiPropertyOptional({ description: 'Product description', example: 'Latest iPhone with A17 Pro chip' })
   @IsOptional()
@@ -15,12 +15,12 @@ export class CreateProductDto {
   @ApiProperty({ description: 'Product price', example: 999.99, minimum: 0 })
   @IsNumber()
   @Min(0)
-  price: number;
+  price!: number;
 
   @ApiProperty({ description: 'Stock quantity', example: 100, minimum: 0 })
   @IsNumber()
   @Min(0)
-  stock: number;
+  stock!: number;
 
   @ApiPropertyOptional({ description: 'Product category', example: 'Electronics' })
   @IsOptional()

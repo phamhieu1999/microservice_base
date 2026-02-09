@@ -17,9 +17,15 @@ async function bootstrap() {
     }),
   );
 
-  setupSwagger(app);
+  const swaggerUrl = setupSwagger(app);
 
-  await app.listen(process.env.PORT || 3016);
+  const port = process.env.PORT || 3016;
+  await app.listen(port);
+
+  console.log('\n🚀 Dispute Service is running!');
+  console.log(`📍 Server: http://localhost:${port}`);
+  console.log(`📚 Swagger API Docs: ${swaggerUrl}`);
+  console.log(`📖 Swagger JSON: ${swaggerUrl}-json\n`);
 }
 
 bootstrap();

@@ -80,9 +80,6 @@ export class PromotionService {
     await this.repo.createUsage(dto.voucherId, dto.userId);
     return { success: true };
   }
-}
-
-
 
   // Tạo voucher đổi từ điểm Loyalty
   async createLoyaltyVoucher(userId: string, points: number) {
@@ -104,3 +101,4 @@ export class PromotionService {
 
     return { code: voucher.code, discountValue };
   }
+}

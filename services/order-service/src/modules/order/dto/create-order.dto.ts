@@ -3,15 +3,15 @@ import { Type } from 'class-transformer';
 
 class OrderItemDto {
   @IsString()
-  productId: string;
+  productId!: string;
 
   @IsNumber()
   @Min(1)
-  quantity: number;
+  quantity!: number;
 
   @IsNumber()
   @Min(0)
-  unitPrice: number;
+  unitPrice!: number;
 
   @IsOptional()
   @IsString()
@@ -22,7 +22,7 @@ export class CreateOrderDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => OrderItemDto)
-  items: OrderItemDto[];
+  items!: OrderItemDto[];
 
   @IsOptional()
   @IsString()
@@ -31,6 +31,11 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   voucherId?: string;
+
+  /** Mã voucher (để validate qua Promotion – Request-Reply Pattern A) */
+  @IsOptional()
+  @IsString()
+  voucherCode?: string;
 
   @IsOptional()
   @IsNumber()

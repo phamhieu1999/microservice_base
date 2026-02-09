@@ -1,27 +1,75 @@
-version: '3.9'
-
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-logs:/var/lib/zookeeper/log
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 2181 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     ports:
       - "9092:9092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_HEAP_OPTS: "-Xmx512M -Xms512M"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: nginx-lb
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - nginx-logs:/var/log/nginx
+    depends_on:
+      api-gateway:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
@@ -42,19 +90,34 @@ services:
       POSTGRES_DB: auth_db
     ports:
       - "5433:5432"
+    volumes:
+      - postgres-auth-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mongo:
     image: mongo:7
     ports:
       - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
 
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"  # Changed to 6380 to avoid conflict with host Redis
     command: redis-server --appendonly yes
     volumes:
       - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   auth-service:
     build:
@@ -68,11 +131,20 @@ services:
       AUTH_DB_PASSWORD: auth_password
       AUTH_DB_NAME: auth_db
       KAFKA_BROKERS: kafka:9092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       JWT_ACCESS_SECRET: access-secret
       JWT_REFRESH_SECRET: refresh-secret
+      DB_POOL_CONNECTION_TIMEOUT: 30000
+    ports:
+      - "3001:3001"
     depends_on:
-      - postgres-auth
-      - kafka
+      postgres-auth:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   product-service:
     build:
@@ -82,9 +154,17 @@ services:
       PORT: 3002
       PRODUCT_MONGO_URI: mongodb://mongo:27017/product_db
       KAFKA_BROKERS: kafka:9092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "3002:3002"
     depends_on:
-      - mongo
-      - kafka
+      mongo:
+        condition: service_started
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   cart-service:
     build:
@@ -93,8 +173,15 @@ services:
     environment:
       PORT: 3006
       CART_MONGO_URI: mongodb://mongo:27017/cart_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "3006:3006"
     depends_on:
-      - mongo
+      mongo:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   review-service:
     build:
@@ -103,6 +190,8 @@ services:
     environment:
       PORT: 3007
       REVIEW_MONGO_URI: mongodb://mongo:27017/review_db
+    ports:
+      - "3007:3007"
     depends_on:
       - mongo
 
@@ -114,6 +203,13 @@ services:
       POSTGRES_DB: seller_db
     ports:
       - "5436:5432"
+    volumes:
+      - postgres-seller-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U seller_user -d seller_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   seller-service:
     build:
@@ -126,8 +222,11 @@ services:
       SELLER_DB_USER: seller_user
       SELLER_DB_PASSWORD: seller_password
       SELLER_DB_NAME: seller_db
+    ports:
+      - "3008:3008"
     depends_on:
-      - postgres-seller
+      postgres-seller:
+        condition: service_healthy
 
   postgres-promo:
     image: postgres:15
@@ -137,6 +236,13 @@ services:
       POSTGRES_DB: promo_db
     ports:
       - "5437:5432"
+    volumes:
+      - postgres-promo-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U promo_user -d promo_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   promotion-service:
     build:
@@ -149,8 +255,27 @@ services:
       PROMO_DB_USER: promo_user
       PROMO_DB_PASSWORD: promo_password
       PROMO_DB_NAME: promo_db
+    ports:
+      - "3009:3009"
     depends_on:
-      - postgres-promo
+      postgres-promo:
+        condition: service_healthy
+
+  postgres-shipping:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: shipping_user
+      POSTGRES_PASSWORD: shipping_password
+      POSTGRES_DB: shipping_db
+    ports:
+      - "5441:5432"
+    volumes:
+      - postgres-shipping-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shipping_user -d shipping_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   shipping-service:
     build:
@@ -158,8 +283,19 @@ services:
       dockerfile: Dockerfile
     environment:
       PORT: 3010
+      SHIPPING_DB_HOST: postgres-shipping
+      SHIPPING_DB_PORT: 5432
+      SHIPPING_DB_USER: shipping_user
+      SHIPPING_DB_PASSWORD: shipping_password
+      SHIPPING_DB_NAME: shipping_db
+      KAFKA_BROKERS: kafka:9092
+    ports:
+      - "3010:3010"
     depends_on:
-      - mongo
+      postgres-shipping:
+        condition: service_healthy
+      kafka:
+        condition: service_started
 
   chat-service:
     build:
@@ -169,6 +305,8 @@ services:
       PORT: 3011
       CHAT_MONGO_URI: mongodb://mongo:27017/chat_db
       KAFKA_BROKERS: kafka:9092
+    ports:
+      - "3011:3011"
     depends_on:
       - mongo
       - kafka
@@ -185,6 +323,8 @@ services:
       REDIS_PORT: 6379
       ELASTICSEARCH_URL: http://elasticsearch:9200
       USE_ELASTICSEARCH: "true"
+    ports:
+      - "3012:3012"
     depends_on:
       - mongo
       - kafka
@@ -199,6 +339,13 @@ services:
       POSTGRES_DB: order_db
     ports:
       - "5434:5432"
+    volumes:
+      - postgres-order-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U order_user -d order_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   postgres-payment:
     image: postgres:15
@@ -208,6 +355,13 @@ services:
       POSTGRES_DB: payment_db
     ports:
       - "5435:5432"
+    volumes:
+      - postgres-payment-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payment_user -d payment_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   order-service:
     build:
@@ -221,9 +375,13 @@ services:
       ORDER_DB_PASSWORD: order_password
       ORDER_DB_NAME: order_db
       KAFKA_BROKERS: kafka:9092
+    ports:
+      - "3003:3003"
     depends_on:
-      - postgres-order
-      - kafka
+      postgres-order:
+        condition: service_healthy
+      kafka:
+        condition: service_started
 
   payment-service:
     build:
@@ -237,9 +395,13 @@ services:
       PAYMENT_DB_PASSWORD: payment_password
       PAYMENT_DB_NAME: payment_db
       KAFKA_BROKERS: kafka:9092
+    ports:
+      - "3004:3004"
     depends_on:
-      - postgres-payment
-      - kafka
+      postgres-payment:
+        condition: service_healthy
+      kafka:
+        condition: service_started
 
   notification-service:
     build:
@@ -250,6 +412,8 @@ services:
       KAFKA_BROKERS: kafka:9092
       NOTIFICATION_MONGO_URI: mongodb://mongo:27017/notification_db
       JWT_ACCESS_SECRET: access-secret
+    ports:
+      - "3005:3005"
     depends_on:
       - kafka
       - mongo
@@ -266,18 +430,33 @@ services:
       CART_SERVICE_URL: http://cart-service:3006
       REVIEW_SERVICE_URL: http://review-service:3007
       SELLER_SERVICE_URL: http://seller-service:3008
+      SETTLEMENT_SERVICE_URL: http://settlement-service:3017
       PROMOTION_SERVICE_URL: http://promotion-service:3009
       SHIPPING_SERVICE_URL: http://shipping-service:3010
       CHAT_SERVICE_URL: http://chat-service:3011
       SEARCH_SERVICE_URL: http://search-service:3012
       LOYALTY_SERVICE_URL: http://loyalty-service:3015
+      DISPUTE_SERVICE_URL: http://dispute-service:3016
+      DLQ_SERVICE_URL: http://dlq-service:3013
       WAREHOUSE_SERVICE_URL: http://warehouse-service:3018
       NOTIFICATION_SERVICE_URL: http://notification-service:3005
       JWT_ACCESS_SECRET: access-secret
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     depends_on:
-      - auth-service
-      - product-service
+      auth-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+      dispute-service:
+        condition: service_started
+      dlq-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
     ports:
+      # Port 3000 exposed for direct access (development)
+      # In production, consider removing this and access only via Nginx (port 80)
       - "3000:3000"
 
   prometheus:
@@ -324,13 +503,13 @@ services:
     depends_on:
       - prometheus
 
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    ports:
-      - "16686:16686"  # Jaeger UI
-      - "14268:14268"  # HTTP collector
-    environment:
-      - COLLECTOR_ZIPKIN_HTTP_PORT=9411
+  # jaeger:
+  #   image: jaegertracing/all-in-one:latest
+  #   ports:
+  #     - "16686:16686"  # Jaeger UI
+  #     - "14268:14268"  # HTTP collector
+  #   environment:
+  #     - COLLECTOR_ZIPKIN_HTTP_PORT=9411
 
   dlq-service:
     build:
@@ -340,6 +519,8 @@ services:
       PORT: 3013
       DLQ_MONGO_URI: mongodb://mongo:27017/dlq_db
       KAFKA_BROKERS: kafka:9092
+    ports:
+      - "3013:3013"
     depends_on:
       - mongo
       - kafka
@@ -352,19 +533,27 @@ services:
       PORT: 3014
       ANALYTICS_MONGO_URI: mongodb://mongo:27017/analytics_db
       KAFKA_BROKERS: kafka:9092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "3014:3014"
     depends_on:
-      - mongo
-      - kafka
+      mongo:
+        condition: service_started
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   clickhouse:
     image: clickhouse/clickhouse-server:latest
     ports:
-      - "8123:8123" # HTTP interface
-      - "9000:9000" # Native protocol
+      - "${CLICKHOUSE_PORT_HTTP:-8123}:8123" # HTTP interface
+      - "${CLICKHOUSE_PORT_NATIVE:-9000}:9000" # Native protocol
     environment:
-      CLICKHOUSE_DB: warehouse_db
-      CLICKHOUSE_USER: warehouse_user
-      CLICKHOUSE_PASSWORD: warehouse_password
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-warehouse_db}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-warehouse_user}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-warehouse_password}
     volumes:
       - clickhouse-data:/var/lib/clickhouse
       - clickhouse-logs:/var/log/clickhouse-server
@@ -372,15 +561,6 @@ services:
       nofile:
         soft: 262144
         hard: 262144
-
-volumes:
-  redis-data:
-  prometheus-data:
-  grafana-data:
-  alertmanager-data:
-  elasticsearch-data:
-  clickhouse-data:
-  clickhouse-logs:
 
   postgres-loyalty:
     image: postgres:15
@@ -390,6 +570,13 @@ volumes:
       POSTGRES_DB: loyalty_db
     ports:
       - "5438:5432"
+    volumes:
+      - postgres-loyalty-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U loyalty_user -d loyalty_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   loyalty-service:
     build:
@@ -403,9 +590,13 @@ volumes:
       LOYALTY_DB_PASSWORD: loyalty_password
       LOYALTY_DB_NAME: loyalty_db
       KAFKA_BROKERS: kafka:9092
+    ports:
+      - "3015:3015"
     depends_on:
-      - postgres-loyalty
-      - kafka
+      postgres-loyalty:
+        condition: service_healthy
+      kafka:
+        condition: service_started
 
   postgres-dispute:
     image: postgres:15
@@ -415,6 +606,13 @@ volumes:
       POSTGRES_DB: dispute_db
     ports:
       - "5439:5432"
+    volumes:
+      - postgres-dispute-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dispute_user -d dispute_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   dispute-service:
     build:
@@ -428,9 +626,13 @@ volumes:
       DISPUTE_DB_PASSWORD: dispute_password
       DISPUTE_DB_NAME: dispute_db
       KAFKA_BROKERS: kafka:9092
+    ports:
+      - "3016:3016"
     depends_on:
-      - postgres-dispute
-      - kafka
+      postgres-dispute:
+        condition: service_healthy
+      kafka:
+        condition: service_started
 
   postgres-settlement:
     image: postgres:15
@@ -440,6 +642,13 @@ volumes:
       POSTGRES_DB: settlement_db
     ports:
       - "5440:5432"
+    volumes:
+      - postgres-settlement-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U settlement_user -d settlement_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   settlement-service:
     build:
@@ -453,22 +662,66 @@ volumes:
       SETTLEMENT_DB_PASSWORD: settlement_password
       SETTLEMENT_DB_NAME: settlement_db
       KAFKA_BROKERS: kafka:9092
+    ports:
+      - "3017:3017"
     depends_on:
-      - postgres-settlement
-      - kafka
+      postgres-settlement:
+        condition: service_healthy
+      kafka:
+        condition: service_started
 
   warehouse-service:
     build:
       context: ../services/warehouse-service
       dockerfile: Dockerfile
     environment:
-      PORT: 3018
-      CLICKHOUSE_HOST: clickhouse
-      CLICKHOUSE_PORT: 8123
-      CLICKHOUSE_USER: warehouse_user
-      CLICKHOUSE_PASSWORD: warehouse_password
-      CLICKHOUSE_DB: warehouse_db
+      PORT: ${WAREHOUSE_SERVICE_PORT:-3018}
+      CLICKHOUSE_HOST: ${WAREHOUSE_CLICKHOUSE_HOST:-clickhouse}
+      CLICKHOUSE_PORT: ${WAREHOUSE_CLICKHOUSE_PORT:-8123}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-warehouse_user}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-warehouse_password}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-warehouse_db}
       KAFKA_BROKERS: kafka:9092
+    ports:
+      - "3018:3018"
     depends_on:
       - clickhouse
       - kafka
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    depends_on:
+      kafka:
+        condition: service_started
+      zookeeper:
+        condition: service_started
+
+volumes:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+  alertmanager-data:
+  postgres-auth-data:
+  postgres-order-data:
+  postgres-payment-data:
+  postgres-seller-data:
+  postgres-promo-data:
+  postgres-shipping-data:
+  postgres-loyalty-data:
+  postgres-dispute-data:
+  postgres-settlement-data:
+  mongo-data:
+  elasticsearch-data:
+  clickhouse-data:
+  clickhouse-logs:
+  zookeeper-data:
+  zookeeper-logs:
+  kafka-data:
+  nginx-logs:

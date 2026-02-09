@@ -1,7 +1,7 @@
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { INestApplication } from '@nestjs/common';
 
-export function setupSwagger(app: INestApplication) {
+export function setupSwagger(app: INestApplication): string {
   const config = new DocumentBuilder()
     .setTitle('Analytics Service API')
     .setDescription('Analytics and Business Intelligence Service API Documentation')
@@ -26,5 +26,7 @@ export function setupSwagger(app: INestApplication) {
       persistAuthorization: true,
     },
   });
+
+  return '/api-docs';
 }
 

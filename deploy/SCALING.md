@@ -53,7 +53,7 @@ docker run -d -p 80:80 --name nginx-lb nginx-lb
 **Scale API Gateway**:
 ```bash
 # Scale API Gateway to 3 instances
-docker-compose up --scale api-gateway=3
+docker compose up --scale api-gateway=3
 
 # Update nginx.conf to include all instances
 # Then restart nginx
@@ -73,16 +73,16 @@ Nếu deploy trên AWS, có thể dùng Application Load Balancer thay vì Nginx
 **Scale services manually**:
 ```bash
 # Scale API Gateway to 3 instances
-docker-compose up --scale api-gateway=3
+docker compose up --scale api-gateway=3
 
 # Scale Product Service to 2 instances
-docker-compose up --scale product-service=2
+docker compose up --scale product-service=2
 
 # Scale Order Service to 2 instances
-docker-compose up --scale order-service=2
+docker compose up --scale order-service=2
 
 # Scale multiple services
-docker-compose up --scale api-gateway=3 --scale product-service=2 --scale order-service=2
+docker compose up --scale api-gateway=3 --scale product-service=2 --scale order-service=2
 ```
 
 **Lưu ý**:
@@ -136,7 +136,7 @@ kubectl get hpa -w
 **Check service instances**:
 ```bash
 # Docker Compose
-docker-compose ps
+docker compose ps
 
 # Kubernetes
 kubectl get pods -l app=api-gateway

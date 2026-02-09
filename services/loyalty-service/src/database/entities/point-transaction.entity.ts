@@ -5,17 +5,17 @@ export type PointTransactionType = 'EARN' | 'REDEEM' | 'ADJUST' | 'REFERRAL';
 @Entity({ name: 'point_transactions' })
 export class PointTransaction {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Index()
   @Column()
-  userId: string;
+  userId!: string;
 
   @Column({ type: 'int' })
-  points: number;
+  points!: number;
 
   @Column({ type: 'varchar', length: 20 })
-  type: PointTransactionType;
+  type!: PointTransactionType;
 
   @Column({ type: 'varchar', length: 50, nullable: true })
   source?: string; // ORDER, PROMO, REFERRAL, ADMIN
@@ -24,8 +24,8 @@ export class PointTransaction {
   referenceId?: string; // orderId, promoId, referralId, etc.
 
   @Column({ type: 'int', default: 0 })
-  balanceAfter: number;
+  balanceAfter!: number;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  createdAt: Date;
+  createdAt!: Date;
 }

@@ -30,6 +30,8 @@ export interface RefundResponse {
   error?: string;
 }
 
+import { PaymentStatus } from '../../../database/entities/payment.entity';
+
 export interface WebhookPayload {
   providerTxnId: string;
   status: 'SUCCESS' | 'FAILED';

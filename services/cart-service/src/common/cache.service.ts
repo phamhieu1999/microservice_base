@@ -7,7 +7,8 @@ export class CacheService {
   constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) {}
 
   async get<T>(key: string): Promise<T | undefined> {
-    return this.cacheManager.get<T>(key);
+    const value = await this.cacheManager.get<T>(key);
+    return value ?? undefined;
   }
 
   async set(key: string, value: any, ttl?: number): Promise<void> {
@@ -19,7 +20,11 @@ export class CacheService {
   }
 
   async reset(): Promise<void> {
-    await this.cacheManager.reset();
+    // Note: reset() may not be available in all cache implementations
+    // For Redis, we can use del with pattern matching or store reference
+    if ('reset' in this.cacheManager && typeof this.cacheManager.reset === 'function') {
+      await (this.cacheManager as any).reset();
+    }
   }
 
   /**

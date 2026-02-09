@@ -4,19 +4,34 @@ export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED' | 'PAR
 export type PaymentMethod = 'CARD' | 'EWALLET' | 'BANK_TRANSFER' | 'COD';
 export type PaymentProvider = 'VNPAY' | 'MOMO' | 'STRIPE' | 'MOCK';
 
+// Enum objects for validation and Swagger
+export enum PaymentMethodEnum {
+  CARD = 'CARD',
+  EWALLET = 'EWALLET',
+  BANK_TRANSFER = 'BANK_TRANSFER',
+  COD = 'COD',
+}
+
+export enum PaymentProviderEnum {
+  VNPAY = 'VNPAY',
+  MOMO = 'MOMO',
+  STRIPE = 'STRIPE',
+  MOCK = 'MOCK',
+}
+
 @Entity({ name: 'payments' })
 export class Payment {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column()
-  orderId: string;
+  orderId!: string;
 
   @Column({ type: 'decimal' })
-  amount: number;
+  amount!: number;
 
   @Column({ type: 'varchar', default: 'PENDING' })
-  status: PaymentStatus;
+  status!: PaymentStatus;
 
   @Column({ type: 'varchar', nullable: true })
   method?: PaymentMethod;
@@ -37,10 +52,10 @@ export class Payment {
   providerResponse?: string; // Lưu raw response từ provider
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }
 
 

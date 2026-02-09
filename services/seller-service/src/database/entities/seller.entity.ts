@@ -6,19 +6,19 @@ export type SellerStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 @Entity({ name: 'sellers' })
 export class Seller {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column()
-  userId: string;
+  userId!: string;
 
   @Column({ type: 'varchar', default: 'PENDING' })
-  status: SellerStatus;
+  status!: SellerStatus;
 
   @OneToMany(() => Shop, (shop) => shop.seller)
-  shops: Shop[];
+  shops!: Shop[];
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 }
 
 

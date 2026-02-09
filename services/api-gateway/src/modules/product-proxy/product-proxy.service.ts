@@ -1,12 +1,22 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
+import { CircuitBreakerService } from '../../common/circuit-breaker/circuit-breaker.service';
 
 @Injectable()
 export class ProductProxyService {
-  private readonly productBaseUrl = process.env.PRODUCT_SERVICE_URL || 'http://product-service:3002';
+  /**
+   * Base URL cho Product Service.
+   * - Docker: dùng PRODUCT_SERVICE_URL (ví dụ http://product-service:3002).
+   * - Local dev: fallback sang http://localhost:3002 để tránh lỗi DNS khi không chạy trong Docker.
+   */
+  private readonly productBaseUrl =
+    process.env.PRODUCT_SERVICE_URL || 'http://localhost:3002';
 
-  constructor(private readonly http: HttpService) {}
+  constructor(
+    private readonly http: HttpService,
+    private readonly circuitBreaker: CircuitBreakerService,
+  ) {}
 
   async forwardCreate(body: any) {
     return this.circuitBreaker.execute(

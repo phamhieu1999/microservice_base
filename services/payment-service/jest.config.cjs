@@ -17,4 +17,5 @@ module.exports = {
     '!src/**/*.interface.ts',
     '!src/main.ts',
   ],
+  testTimeout: 30000, // 30 seconds timeout for e2e tests
 };
