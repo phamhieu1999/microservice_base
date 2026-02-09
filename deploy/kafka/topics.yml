@@ -50,3 +50,48 @@ topics:
   - name: dlq.failed-messages
     partitions: 2
     replication-factor: 1
+
+  # Request-Reply Pattern A
+  - name: inventory.reserve.request
+    partitions: 2
+    replication-factor: 1
+  - name: inventory.reserve.reply
+    partitions: 2
+    replication-factor: 1
+  - name: promotion.validate.request
+    partitions: 2
+    replication-factor: 1
+  - name: promotion.validate.reply
+    partitions: 2
+    replication-factor: 1
+
+  # Request-Reply Pattern B (aggregate)
+  - name: order.prepare.request
+    partitions: 2
+    replication-factor: 1
+  - name: order.prepare.reply
+    partitions: 2
+    replication-factor: 1
+
+  # Analytics Streams output
+  - name: analytics.revenue.daily
+    partitions: 2
+    replication-factor: 1
+  - name: analytics.revenue.1m
+    partitions: 2
+    replication-factor: 1
+  - name: analytics.revenue.5m
+    partitions: 2
+    replication-factor: 1
+  - name: analytics.user.daily
+    partitions: 2
+    replication-factor: 1
+  - name: analytics.product.daily
+    partitions: 2
+    replication-factor: 1
+  - name: analytics.seller.daily
+    partitions: 2
+    replication-factor: 1
+  - name: analytics.category.daily
+    partitions: 2
+    replication-factor: 1

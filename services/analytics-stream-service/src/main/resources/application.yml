@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: analytics-stream-service
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:kafka:9092}
+    streams:
+      application-id: analytics-streams-app
+      properties:
+        processing.guarantee: exactly_once_v2
+        default.key.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+        default.value.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+
+  data:
+    mongodb:
+      uri: ${ANALYTICS_MONGO_URI:}
+
+app:
+  sink:
+    mongodb:
+      # Set ANALYTICS_SINK_ENABLED=true and ANALYTICS_MONGO_URI when using MongoDB sink (e.g. in Docker).
+      enabled: ${ANALYTICS_SINK_ENABLED:false}
+
+server:
+  port: 8099
+

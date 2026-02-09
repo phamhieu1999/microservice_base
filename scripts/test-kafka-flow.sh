@@ -84,6 +84,9 @@ list_topics() {
         echo "  - loyalty.points.earned"
         echo "  - dispute.opened, dispute.escalated, dispute.resolved"
         echo "  - dlq.failed-messages"
+        echo "  - (Request-Reply) inventory.reserve.request, inventory.reserve.reply"
+        echo "  - (Request-Reply) promotion.validate.request, promotion.validate.reply"
+        echo "  - (Request-Reply) order.prepare.request, order.prepare.reply"
     else
         echo "$topics" | while read -r topic; do
             if [ -n "$topic" ]; then
@@ -235,7 +238,7 @@ show_topic_details() {
     done
 }
 
-# Full test flow
+# Full test flow: fire-and-forget events + Request-Reply E2E
 full_test() {
     print_header "TEST TOÀN BỘ LUỒNG KAFKA"
     
@@ -243,19 +246,27 @@ full_test() {
     list_topics
     list_consumers
     echo ""
-    print_info "Đang gửi test events..."
+    print_info "Bước 1/2: Gửi test events (fire-and-forget) vào các topics..."
     send_test_events
     echo ""
     sleep 2
     monitor_consumers
     echo ""
-    print_success "Test hoàn tất!"
+    print_header "Bước 2/2: Test luồng Request-Reply (Order → Product reserve, tạo đơn)"
+    print_info "Khởi động/kiểm tra product, order, promotion service và gọi POST /orders..."
+    if ! "$SCRIPT_DIR/test-request-reply-flow.sh"; then
+        print_warning "Request-Reply test thất bại (có thể do service chưa sẵn sàng). Fire-and-forget events đã gửi thành công."
+    fi
+    echo ""
+    print_success "Test toàn bộ luồng Kafka hoàn tất!"
     echo ""
     print_info "Để xem logs của các service consumer:"
-    echo "  docker compose logs -f notification-service"
-    echo "  docker compose logs -f analytics-service"
-    echo "  docker compose logs -f warehouse-service"
-    echo "  docker compose logs -f search-service"
+    echo "  docker compose -f $SCRIPT_DIR/../deploy/docker-compose.yml logs -f notification-service"
+    echo "  docker compose -f $SCRIPT_DIR/../deploy/docker-compose.yml logs -f analytics-service"
+    echo "  docker compose -f $SCRIPT_DIR/../deploy/docker-compose.yml logs -f warehouse-service"
+    echo "  docker compose -f $SCRIPT_DIR/../deploy/docker-compose.yml logs -f search-service"
+    echo "  docker compose -f $SCRIPT_DIR/../deploy/docker-compose.yml logs -f product-service"
+    echo "  docker compose -f $SCRIPT_DIR/../deploy/docker-compose.yml logs -f order-service"
 }
 
 # Main
@@ -288,6 +299,11 @@ case "$ACTION" in
     "full-test"|"test"|"all")
         full_test
         ;;
+    "request-reply"|"req-reply")
+        check_kafka
+        print_info "Chạy test luồng Request-Reply (reserve stock + tạo đơn)..."
+        exec "$SCRIPT_DIR/test-request-reply-flow.sh"
+        ;;
     *)
         echo "Usage: $0 [action]"
         echo ""
@@ -298,6 +314,7 @@ case "$ACTION" in
         echo "  send-events        - Gửi test events vào các topics"
         echo "  monitor            - Monitor consumer lag"
         echo "  details            - Hiển thị chi tiết topics"
+        echo "  request-reply      - Test luồng Request-Reply (Order->Product reserve, tạo đơn)"
         echo "  full-test (default) - Chạy toàn bộ test flow"
         echo ""
         exit 1

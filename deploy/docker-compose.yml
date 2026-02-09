@@ -255,11 +255,14 @@ services:
       PROMO_DB_USER: promo_user
       PROMO_DB_PASSWORD: promo_password
       PROMO_DB_NAME: promo_db
+      KAFKA_BROKERS: kafka:9092
     ports:
       - "3009:3009"
     depends_on:
       postgres-promo:
         condition: service_healthy
+      kafka:
+        condition: service_started
 
   postgres-shipping:
     image: postgres:15
@@ -544,6 +547,20 @@ services:
         condition: service_started
       redis:
         condition: service_healthy
+
+  analytics-stream-service:
+    build:
+      context: ../services/analytics-stream-service
+      dockerfile: Dockerfile
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      ANALYTICS_MONGO_URI: mongodb://mongo:27017/analytics_db
+      ANALYTICS_SINK_ENABLED: "true"
+    depends_on:
+      kafka:
+        condition: service_started
+      mongo:
+        condition: service_started
 
   clickhouse:
     image: clickhouse/clickhouse-server:latest
