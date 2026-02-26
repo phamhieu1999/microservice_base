@@ -1,6 +1,6 @@
-import { Injectable, BadRequestException, NotFoundException, Optional } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Optional, Logger } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import { PaymentRepository } from './payment.repository';
-import { KafkaService } from '../../kafka/kafka.service';
 import {
   PAYMENT_FAILED_TOPIC,
   PAYMENT_SUCCESS_TOPIC,
@@ -15,18 +15,21 @@ import { RefundPaymentDto } from './dto/refund-payment.dto';
 import { Payment, PaymentStatus, PaymentProvider } from '../../database/entities/payment.entity';
 import { randomUUID } from 'crypto';
 import { CircuitBreakerService } from '../../common/circuit-breaker/circuit-breaker.service';
+import { OutboxService } from '../../outbox/outbox.service';
 
 @Injectable()
 export class PaymentService {
+  private readonly logger = new Logger(PaymentService.name);
+
   constructor(
     private readonly repo: PaymentRepository,
-    private readonly kafka: KafkaService,
+    private readonly dataSource: DataSource,
+    private readonly outbox: OutboxService,
     private readonly promotionClient: PromotionClient,
     private readonly providerFactory: PaymentProviderFactory,
     @Optional() private readonly circuitBreaker?: CircuitBreakerService,
   ) {}
 
-  // Được gọi khi nhận event order.created (legacy, giữ để backward compatible)
   async processOrderCreated(event: {
     id: string;
     userId: string;
@@ -34,46 +37,85 @@ export class PaymentService {
     voucherId?: string;
     items?: Array<{ productId: string; quantity: number; unitPrice: number; sellerId?: string }>;
   }) {
-    const payment = await this.repo.createPending(
-      event.id,
-      event.totalAmount,
-      'CARD',
-      'MOCK',
-    );
-
-    // Mock xử lý thanh toán: random success/failed
     const success = Math.random() > 0.2;
     const providerTxnId = `mock-txn-${Date.now()}`;
 
-    if (success) {
-      // Tính sellerShares dựa trên items (multi-seller)
-      let sellerShares: SellerShare[] | undefined;
-      if (event.items && Array.isArray(event.items)) {
-        const map = new Map<string, number>();
-        for (const item of event.items) {
-          if (!item.sellerId) continue;
-          const lineTotal = item.unitPrice * (item.quantity || 1);
-          map.set(item.sellerId, (map.get(item.sellerId) || 0) + lineTotal);
-        }
-        if (map.size > 0) {
-          sellerShares = Array.from(map.entries()).map(([sellerId, amount]) => ({
-            sellerId,
-            amount,
-          }));
-        }
+    let sellerShares: SellerShare[] | undefined;
+    if (success && event.items && Array.isArray(event.items)) {
+      const map = new Map<string, number>();
+      for (const item of event.items) {
+        if (!item.sellerId) continue;
+        const lineTotal = item.unitPrice * (item.quantity || 1);
+        map.set(item.sellerId, (map.get(item.sellerId) || 0) + lineTotal);
       }
+      if (map.size > 0) {
+        sellerShares = Array.from(map.entries()).map(([sellerId, amount]) => ({
+          sellerId,
+          amount,
+        }));
+      }
+    }
 
-      await this.repo.markSuccess(payment.id, providerTxnId);
-      await this.emitPaymentSuccess(payment, event.userId, event.voucherId, sellerShares);
-    } else {
-      await this.repo.markFailed(payment.id, providerTxnId);
-      await this.emitPaymentFailed(event.id, event.userId, 'MOCK_PROVIDER_FAILED');
+    // Atomic: create payment + outbox event in a single transaction
+    await this.outbox.executeInTransaction(async (manager) => {
+      const paymentRepo = manager.getRepository(Payment);
+
+      const payment = paymentRepo.create({
+        orderId: event.id,
+        amount: event.totalAmount,
+        status: success ? 'SUCCESS' : 'FAILED',
+        method: 'CARD',
+        provider: 'MOCK',
+        providerTxnId,
+      });
+      const saved = await paymentRepo.save(payment);
+
+      if (success) {
+        const successEvent: PaymentSuccessEvent = {
+          orderId: saved.orderId,
+          paymentId: saved.id,
+          amount: Number(saved.amount),
+          userId: event.userId,
+          sellerShares,
+        };
+        await this.outbox.saveEvent(
+          {
+            aggregateType: 'Payment',
+            aggregateId: saved.id,
+            topic: PAYMENT_SUCCESS_TOPIC,
+            payload: successEvent as unknown as Record<string, unknown>,
+          },
+          manager,
+        );
+      } else {
+        const failedEvent: PaymentFailedEvent = {
+          orderId: event.id,
+          reason: 'MOCK_PROVIDER_FAILED',
+          userId: event.userId,
+        };
+        await this.outbox.saveEvent(
+          {
+            aggregateType: 'Payment',
+            aggregateId: saved.id,
+            topic: PAYMENT_FAILED_TOPIC,
+            payload: failedEvent as unknown as Record<string, unknown>,
+          },
+          manager,
+        );
+      }
+    });
+
+    // Apply voucher outside transaction (best-effort, non-critical)
+    if (success && event.voucherId && event.userId) {
+      try {
+        await this.promotionClient.apply(event.voucherId, event.userId);
+      } catch (err) {
+        this.logger.warn(`Failed to apply voucher ${event.voucherId}: ${(err as Error).message}`);
+      }
     }
   }
 
-  // Tạo payment mới với provider cụ thể
   async createPayment(dto: CreatePaymentDto, userId: string) {
-    // Check idempotency
     if (dto.idempotencyKey) {
       const existing = await this.repo.findByIdempotencyKey(dto.idempotencyKey);
       if (existing) {
@@ -93,8 +135,7 @@ export class PaymentService {
     );
 
     const paymentProvider = this.providerFactory.getProvider(provider as PaymentProvider);
-    
-    // Use circuit breaker to protect payment provider calls
+
     const response = this.circuitBreaker
       ? await this.circuitBreaker.execute(
           `payment-provider-${provider}`,
@@ -106,18 +147,15 @@ export class PaymentService {
               returnUrl: process.env.PAYMENT_RETURN_URL || 'http://localhost:3000/payment/callback',
               cancelUrl: process.env.PAYMENT_CANCEL_URL || 'http://localhost:3000/payment/cancel',
             }),
-          async () => {
-            // Fallback: return failed response
-            return {
-              success: false,
-              paymentId: dto.orderId,
-              error: 'PAYMENT_PROVIDER_UNAVAILABLE',
-            };
-          },
+          async () => ({
+            success: false,
+            paymentId: dto.orderId,
+            error: 'PAYMENT_PROVIDER_UNAVAILABLE',
+          }),
           {
             failureThreshold: 5,
-            timeout: 10000, // 10 seconds
-            resetTimeout: 60000, // 1 minute
+            timeout: 10000,
+            resetTimeout: 60000,
           },
         )
       : await paymentProvider.createPayment({
@@ -141,41 +179,67 @@ export class PaymentService {
     };
   }
 
-  // Xử lý webhook từ payment provider
   async handleWebhook(provider: PaymentProvider, payload: any, signature: string) {
     const paymentProvider = this.providerFactory.getProvider(provider);
 
-    // Verify webhook signature
     const isValid = paymentProvider.verifyWebhook(payload, signature);
     if (!isValid) {
       throw new BadRequestException('Invalid webhook signature');
     }
 
-    // Process webhook
     const result = await paymentProvider.processWebhook(payload);
-    const payment = await this.repo.findByOrderId(result.paymentId);
-    if (!payment || payment.length === 0) {
+    const payments = await this.repo.findByOrderId(result.paymentId);
+    if (!payments || payments.length === 0) {
       throw new NotFoundException('Payment not found');
     }
 
-    const latestPayment = payment[0];
-    await this.repo.updateStatus(
-      latestPayment.id,
-      result.status,
-      JSON.stringify(payload),
-    );
+    const latestPayment = payments[0];
 
-    // Emit Kafka events
-    if (result.status === 'SUCCESS') {
-      await this.emitPaymentSuccess(latestPayment, payload.metadata?.userId);
-    } else if (result.status === 'FAILED') {
-      await this.emitPaymentFailed(latestPayment.orderId, payload.metadata?.userId, 'PROVIDER_FAILED');
-    }
+    // Atomic: update payment status + emit event via outbox
+    await this.outbox.executeInTransaction(async (manager) => {
+      const paymentRepo = manager.getRepository(Payment);
+      await paymentRepo.update(latestPayment.id, {
+        status: result.status as PaymentStatus,
+        providerResponse: JSON.stringify(payload),
+      });
+
+      if (result.status === 'SUCCESS') {
+        const successEvent: PaymentSuccessEvent = {
+          orderId: latestPayment.orderId,
+          paymentId: latestPayment.id,
+          amount: Number(latestPayment.amount),
+          userId: payload.metadata?.userId,
+        };
+        await this.outbox.saveEvent(
+          {
+            aggregateType: 'Payment',
+            aggregateId: latestPayment.id,
+            topic: PAYMENT_SUCCESS_TOPIC,
+            payload: successEvent as unknown as Record<string, unknown>,
+          },
+          manager,
+        );
+      } else if (result.status === 'FAILED') {
+        const failedEvent: PaymentFailedEvent = {
+          orderId: latestPayment.orderId,
+          reason: 'PROVIDER_FAILED',
+          userId: payload.metadata?.userId,
+        };
+        await this.outbox.saveEvent(
+          {
+            aggregateType: 'Payment',
+            aggregateId: latestPayment.id,
+            topic: PAYMENT_FAILED_TOPIC,
+            payload: failedEvent as unknown as Record<string, unknown>,
+          },
+          manager,
+        );
+      }
+    });
 
     return { success: true, paymentId: latestPayment.id, status: result.status };
   }
 
-  // Refund payment
   async refund(paymentId: string, dto: RefundPaymentDto) {
     const payment = await this.repo.findById(paymentId);
     if (!payment) {
@@ -191,8 +255,7 @@ export class PaymentService {
     }
 
     const paymentProvider = this.providerFactory.getProvider(payment.provider || 'MOCK');
-    
-    // Use circuit breaker for refund calls
+
     const refundResponse = this.circuitBreaker
       ? await this.circuitBreaker.execute(
           `payment-provider-${payment.provider}-refund`,
@@ -221,7 +284,6 @@ export class PaymentService {
     return { success: true, refundId: refundResponse.refundId };
   }
 
-  // Query payment status
   async getPaymentStatus(paymentId: string) {
     const payment = await this.repo.findById(paymentId);
     if (!payment) {
@@ -229,35 +291,4 @@ export class PaymentService {
     }
     return payment;
   }
-
-  private async emitPaymentSuccess(
-    payment: Payment,
-    userId?: string,
-    voucherId?: string,
-    sellerShares?: SellerShare[],
-  ) {
-    const successEvent: PaymentSuccessEvent = {
-      orderId: payment.orderId,
-      paymentId: payment.id,
-      amount: Number(payment.amount),
-      userId: userId,
-      sellerShares,
-    };
-    await this.kafka.emit(PAYMENT_SUCCESS_TOPIC, successEvent);
-
-    if (voucherId && userId) {
-      await this.promotionClient.apply(voucherId, userId);
-    }
-  }
-
-  private async emitPaymentFailed(orderId: string, userId?: string, reason?: string) {
-    const failedEvent: PaymentFailedEvent = {
-      orderId,
-      reason: reason || 'PAYMENT_FAILED',
-      userId,
-    };
-    await this.kafka.emit(PAYMENT_FAILED_TOPIC, failedEvent);
-  }
 }
-
-

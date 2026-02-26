@@ -2,8 +2,10 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Payment } from '../database/entities/payment.entity';
+import { OutboxEvent } from '../database/entities/outbox-event.entity';
 import { PaymentModule } from './payment/payment.module';
 import { KafkaModule } from '../kafka/kafka.module';
+import { OutboxModule } from '../outbox/outbox.module';
 import { HealthController } from '../common/health.controller';
 import { CircuitBreakerModule } from '../common/circuit-breaker/circuit-breaker.module';
 
@@ -18,12 +20,11 @@ import { CircuitBreakerModule } from '../common/circuit-breaker/circuit-breaker.
         username: process.env.PAYMENT_DB_USER || 'payment_user',
         password: process.env.PAYMENT_DB_PASSWORD || 'payment_password',
         database: process.env.PAYMENT_DB_NAME || 'payment_db',
-        entities: [Payment],
-        synchronize: false, // Use migrations instead of synchronize
-        // Connection Pooling Configuration
+        entities: [Payment, OutboxEvent],
+        synchronize: false,
         extra: {
-          max: parseInt(process.env.DB_POOL_MAX || '20', 10), // Maximum pool size
-          min: parseInt(process.env.DB_POOL_MIN || '5', 10),  // Minimum pool size
+          max: parseInt(process.env.DB_POOL_MAX || '20', 10),
+          min: parseInt(process.env.DB_POOL_MIN || '5', 10),
           idleTimeoutMillis: parseInt(process.env.DB_POOL_IDLE_TIMEOUT || '30000', 10),
           connectionTimeoutMillis: parseInt(process.env.DB_POOL_CONNECTION_TIMEOUT || '2000', 10),
         },
@@ -31,6 +32,7 @@ import { CircuitBreakerModule } from '../common/circuit-breaker/circuit-breaker.
       }),
     }),
     KafkaModule,
+    OutboxModule,
     CircuitBreakerModule,
     PaymentModule,
   ],
