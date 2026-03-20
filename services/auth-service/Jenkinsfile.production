@@ -1,0 +1,93 @@
+// Jenkins Pipeline – Production (auth-service)
+// Build Docker image -> Push Registry -> Deploy (optional)
+// Tham số: DEPLOY_ENV = production | staging (optional)
+
+pipeline {
+  agent any
+
+  parameters {
+    choice(
+      name: 'DEPLOY_ENV',
+      choices: ['none', 'staging', 'production'],
+      description: 'Deploy sau khi build image (none = chỉ build & push)'
+    )
+    string(name: 'REGISTRY', defaultValue: 'ghcr.io', description: 'Container registry (ghcr.io, docker.io, registry.gitlab.com)')
+    string(name: 'IMAGE_NAMESPACE', defaultValue: 'myorg', description: 'Namespace/org trên registry')
+  }
+
+  options {
+    timeout(time: 25, unit: 'MINUTES')
+    disableConcurrentBuilds()
+  }
+
+  environment {
+    NODE_VERSION = '20'
+    SERVICE_NAME = 'auth-service'
+    SERVICE_DIR = 'services/auth-service'
+    IMAGE_TAG = "${params.REGISTRY}/${params.IMAGE_NAMESPACE}/${env.SERVICE_NAME}:${env.BUILD_NUMBER}"
+    IMAGE_LATEST = "${params.REGISTRY}/${params.IMAGE_NAMESPACE}/${env.SERVICE_NAME}:latest"
+  }
+
+  stages {
+    stage('Checkout') {
+      steps { checkout scm }
+    }
+
+    stage('Lint & Test') {
+      steps {
+        nodejs(nodeJSInstallationName: "Node.js ${env.NODE_VERSION}") {
+          dir(env.SERVICE_DIR) {
+            sh 'npm ci 2>/dev/null || npm install'
+            sh 'npm run lint'
+            sh 'npm run test -- --passWithNoTests'
+            sh 'npm run build'
+          }
+        }
+      }
+    }
+
+    stage('Docker Build & Push') {
+      when { anyOf { branch 'main'; branch 'master'; branch 'release/*' } }
+      steps {
+        script {
+          docker.withRegistry("https://${params.REGISTRY}", 'registry-credentials-id') {
+            def img = docker.build("${params.REGISTRY}/${params.IMAGE_NAMESPACE}/${env.SERVICE_NAME}:${env.BUILD_NUMBER}", "-f ${env.SERVICE_DIR}/Dockerfile ${env.SERVICE_DIR}")
+            img.push()
+            img.push('latest')
+          }
+        }
+      }
+    }
+
+    stage('Deploy to Production') {
+      when {
+        anyOf { branch 'main'; branch 'master' }
+        equals expected: 'production', actual: "${params.DEPLOY_ENV}"
+      }
+      steps {
+        echo "Deploy auth-service to production. Image: ${env.IMAGE_TAG}"
+        // Ví dụ: SSH và docker compose trên server
+        // sshagent(credentials: ['production-ssh']) {
+        //   sh "ssh deploy@prod-server 'cd /opt/app && docker compose pull auth-service && docker compose up -d auth-service'"
+        // }
+        // Hoặc: kubectl
+        // withKubeConfig([credentialsId: 'kube-prod']) {
+        //   sh "kubectl set image deployment/auth-service auth-service=${env.IMAGE_TAG} -n production"
+        //   sh "kubectl rollout status deployment/auth-service -n production"
+        // }
+      }
+    }
+  }
+
+  post {
+    always {
+      cleanWs(deleteDirs: true, patterns: [[pattern: 'node_modules/', type: 'INCLUDE']])
+    }
+    success {
+      echo "Auth service production pipeline OK. Image: ${env.IMAGE_TAG}"
+    }
+    failure {
+      echo 'Auth service production pipeline failed'
+    }
+  }
+}

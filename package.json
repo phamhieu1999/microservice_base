@@ -6,8 +6,9 @@
     "services/*"
   ],
   "scripts": {
-    "lint": "echo \"no root lint\"",
-    "test": "echo \"run tests per service\""
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
   },
   "devDependencies": {
     "cacheable": "^2.3.1"

@@ -1,0 +1,45 @@
+# CI cho auth-service: Lint, Test, Build
+name: Auth Service CI
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'services/auth-service/**'
+      - '.github/workflows/auth-service.yml'
+  pull_request:
+    branches: ['**']
+    paths:
+      - 'services/auth-service/**'
+      - '.github/workflows/auth-service.yml'
+
+defaults:
+  run:
+    working-directory: services/auth-service
+
+jobs:
+  auth-service:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: services/auth-service/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test -- --passWithNoTests
+
+      - name: Build
+        run: npm run build

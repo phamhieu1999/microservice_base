@@ -1,0 +1,58 @@
+# GitLab CI – job cho auth-service
+# Chạy khi có thay đổi trong services/auth-service/
+
+variables:
+  NODE_VERSION: "20"
+
+.auth-service-base: &auth-service-base
+  image: node:${NODE_VERSION}-alpine
+  cache:
+    key: auth-service-${CI_COMMIT_REF_SLUG}
+    paths:
+      - services/auth-service/node_modules/
+  before_script:
+    - cd services/auth-service
+    - npm ci 2>/dev/null || npm install
+
+auth-service:lint:
+  <<: *auth-service-base
+  stage: test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - services/auth-service/**
+    - if: $CI_COMMIT_BRANCH
+      changes:
+        - services/auth-service/**
+  script:
+    - npm run lint
+
+auth-service:test:
+  <<: *auth-service-base
+  stage: test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - services/auth-service/**
+    - if: $CI_COMMIT_BRANCH
+      changes:
+        - services/auth-service/**
+  script:
+    - npm run test -- --passWithNoTests
+
+auth-service:build:
+  <<: *auth-service-base
+  stage: build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - services/auth-service/**
+    - if: $CI_COMMIT_BRANCH
+      changes:
+        - services/auth-service/**
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - services/auth-service/dist/
+    expire_in: 1 day

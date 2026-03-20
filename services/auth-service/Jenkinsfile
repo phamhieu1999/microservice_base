@@ -1,0 +1,79 @@
+// Jenkins Pipeline cho auth-service
+// Chạy: Lint -> Test -> Build
+
+pipeline {
+  agent any
+
+  options {
+    timeout(time: 15, unit: 'MINUTES')
+    disableConcurrentBuilds()
+  }
+
+  environment {
+    NODE_VERSION = '20'
+    SERVICE_DIR = 'services/auth-service'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Setup Node') {
+      steps {
+        nodejs(nodeJSInstallationName: "Node.js ${env.NODE_VERSION}") {
+          sh "node -v && npm -v"
+        }
+      }
+    }
+
+    stage('Install') {
+      steps {
+        dir(env.SERVICE_DIR) {
+          sh 'npm ci 2>/dev/null || npm install'
+        }
+      }
+    }
+
+    stage('Lint') {
+      steps {
+        dir(env.SERVICE_DIR) {
+          sh 'npm run lint'
+        }
+      }
+    }
+
+    stage('Test') {
+      steps {
+        dir(env.SERVICE_DIR) {
+          sh 'npm run test -- --passWithNoTests'
+        }
+      }
+    }
+
+    stage('Build') {
+      steps {
+        dir(env.SERVICE_DIR) {
+          sh 'npm run build'
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      cleanWs(
+        deleteDirs: true,
+        patterns: [[pattern: 'node_modules/', type: 'INCLUDE']]
+      )
+    }
+    success {
+      echo 'Auth service CI passed'
+    }
+    failure {
+      echo 'Auth service CI failed'
+    }
+  }
+}

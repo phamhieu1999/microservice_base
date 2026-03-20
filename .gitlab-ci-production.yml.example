@@ -1,0 +1,84 @@
+# GitLab CI – Production (ví dụ cho auth-service)
+# Đổi tên thành .gitlab-ci.yml hoặc include trong file chính:
+# include: - local: .gitlab-ci-production.yml.example
+
+variables:
+  NODE_VERSION: "20"
+  SERVICE_NAME: auth-service
+  # Dùng GitLab Container Registry
+  IMAGE_TAG: $CI_REGISTRY_IMAGE/$SERVICE_NAME:$CI_COMMIT_SHORT_SHA
+  IMAGE_LATEST: $CI_REGISTRY_IMAGE/$SERVICE_NAME:latest
+
+stages:
+  - test
+  - build
+  - deploy
+
+# --- Test (giữ như .gitlab-ci.yml) ---
+.auth-base: &auth-base
+  image: node:${NODE_VERSION}-alpine
+  before_script:
+    - cd services/auth-service
+    - npm ci 2>/dev/null || npm install
+
+auth-service:test:
+  <<: *auth-base
+  stage: test
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - services/auth-service/**
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - services/auth-service/**
+  script:
+    - npm run lint
+    - npm run test -- --passWithNoTests
+    - npm run build
+
+# --- Build Docker image cho production ---
+auth-service:docker:build:
+  image: docker:24
+  services:
+    - docker:24-dind
+  stage: build
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - services/auth-service/**
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - export IMAGE=$CI_REGISTRY_IMAGE/$SERVICE_NAME:$CI_COMMIT_SHORT_SHA
+    - docker build -t $IMAGE -t $CI_REGISTRY_IMAGE/$SERVICE_NAME:latest -f services/auth-service/Dockerfile services/auth-service
+    - docker push $IMAGE
+    - docker push $CI_REGISTRY_IMAGE/$SERVICE_NAME:latest
+  after_script:
+    - docker logout $CI_REGISTRY
+
+# --- Deploy production (manual) ---
+deploy:auth-service:production:
+  image: alpine:latest
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - services/auth-service/**
+      when: manual
+  environment:
+    name: production
+    url: https://auth.example.com  # URL production thực tế
+  before_script:
+    - apk add --no-cache openssh-client
+    # - eval $(ssh-agent -s) && echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    # - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+  script:
+    - echo "Deploy auth-service to production."
+    - echo "Image: $CI_REGISTRY_IMAGE/$SERVICE_NAME:$CI_COMMIT_SHORT_SHA"
+    # Ví dụ: SSH và chạy docker compose trên server
+    # - ssh -o StrictHostKeyChecking=no $PRODUCTION_USER@$PRODUCTION_HOST "cd /opt/app && docker compose pull auth-service && docker compose up -d auth-service"
+    # Hoặc: kubectl
+    # - kubectl set image deployment/auth-service auth-service=$CI_REGISTRY_IMAGE/$SERVICE_NAME:$CI_COMMIT_SHORT_SHA -n production
+    # - kubectl rollout status deployment/auth-service -n production
