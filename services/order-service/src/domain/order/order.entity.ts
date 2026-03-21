@@ -39,6 +39,7 @@ export class Order {
     public readonly voucherId?: string,
     public readonly discountAmount?: number,
     public readonly shippingFee?: number,
+    public readonly paymentMethod?: 'CARD' | 'EWALLET' | 'BANK_TRANSFER' | 'COD',
   ) {}
 }
 

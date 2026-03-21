@@ -50,6 +50,9 @@ export class Order {
   @Column({ type: 'varchar', default: 'PENDING' })
   status!: OrderStatus;
 
+  @Column({ type: 'varchar', nullable: true })
+  paymentMethod?: 'CARD' | 'EWALLET' | 'BANK_TRANSFER' | 'COD';
+
   @Column({ nullable: true })
   cancellationReason?: string;
 

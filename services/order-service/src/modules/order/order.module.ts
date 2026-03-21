@@ -14,6 +14,8 @@ import { MarkPaidUseCase } from '../../application/order/use-cases/mark-paid.use
 import { MarkCancelledUseCase } from '../../application/order/use-cases/mark-cancelled.usecase';
 import { CancelOrderUseCase } from '../../application/order/use-cases/cancel-order.usecase';
 import { UpdateOrderStatusUseCase } from '../../application/order/use-cases/update-order-status.usecase';
+import { MarkRefundedUseCase } from '../../application/order/use-cases/mark-refunded.usecase';
+import { SyncShippingStatusUseCase } from '../../application/order/use-cases/sync-shipping-status.usecase';
 import { OutboxModule } from '../../outbox/outbox.module';
 import { TracingService } from '../../common/tracing.service';
 
@@ -34,6 +36,8 @@ import { TracingService } from '../../common/tracing.service';
     MarkCancelledUseCase,
     CancelOrderUseCase,
     UpdateOrderStatusUseCase,
+    MarkRefundedUseCase,
+    SyncShippingStatusUseCase,
     TracingService,
   ],
   exports: [
@@ -44,6 +48,8 @@ import { TracingService } from '../../common/tracing.service';
     MarkCancelledUseCase,
     CancelOrderUseCase,
     UpdateOrderStatusUseCase,
+    MarkRefundedUseCase,
+    SyncShippingStatusUseCase,
   ],
 })
 export class OrderModule {}

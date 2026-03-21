@@ -1,5 +1,8 @@
 FROM nginx:alpine
 
+# Ensure wget exists for container healthcheck
+RUN apk add --no-cache wget
+
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 

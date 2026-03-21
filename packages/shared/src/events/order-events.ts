@@ -5,7 +5,7 @@ export interface OrderCreatedEvent {
   orderGroupId?: string;
   voucherId?: string;
   paymentMethod?: 'CARD' | 'EWALLET' | 'BANK_TRANSFER' | 'COD';
-  sellerId?: string; // sellerId đầu tiên từ items để auto tạo conversation
+  sellerId?: string;
   items?: Array<{
     productId: string;
     quantity: number;
@@ -25,5 +25,3 @@ export interface OrderCancelledEvent {
 
 export const ORDER_CREATED_TOPIC = 'order.created';
 export const ORDER_CANCELLED_TOPIC = 'order.cancelled';
-
-

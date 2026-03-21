@@ -13,6 +13,11 @@ export function ormToDomain(orm: OrderOrm): Order {
       unitPrice: Number(i.unitPrice),
       sellerId: i.sellerId,
     })) ?? [],
+    orm.orderGroupId,
+    orm.voucherId,
+    orm.discountAmount ? Number(orm.discountAmount) : undefined,
+    orm.shippingFee ? Number(orm.shippingFee) : undefined,
+    orm.paymentMethod,
   );
 }
 

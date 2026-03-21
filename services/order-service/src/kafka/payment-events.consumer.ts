@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/commo
 import { Kafka, Consumer } from 'kafkajs';
 import { MarkPaidUseCase } from '../application/order/use-cases/mark-paid.usecase';
 import { MarkCancelledUseCase } from '../application/order/use-cases/mark-cancelled.usecase';
+import { MarkRefundedUseCase } from '../application/order/use-cases/mark-refunded.usecase';
 
 @Injectable()
 export class PaymentEventsConsumer implements OnModuleInit, OnModuleDestroy {
@@ -12,6 +13,7 @@ export class PaymentEventsConsumer implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly markPaid: MarkPaidUseCase,
     private readonly markCancelled: MarkCancelledUseCase,
+    private readonly markRefunded: MarkRefundedUseCase,
   ) {
     const kafka = new Kafka({
       clientId: 'order-service-consumer',
@@ -26,7 +28,6 @@ export class PaymentEventsConsumer implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    // Retry logic với exponential backoff
     const maxRetries = 5;
     let retryCount = 0;
     let connected = false;
@@ -36,6 +37,7 @@ export class PaymentEventsConsumer implements OnModuleInit, OnModuleDestroy {
         await this.consumer.connect();
         await this.consumer.subscribe({ topic: 'payment.success', fromBeginning: true });
         await this.consumer.subscribe({ topic: 'payment.failed', fromBeginning: true });
+        await this.consumer.subscribe({ topic: 'payment.refund.success', fromBeginning: true });
 
         await this.consumer.run({
           eachMessage: async ({ topic, message }) => {
@@ -46,6 +48,11 @@ export class PaymentEventsConsumer implements OnModuleInit, OnModuleDestroy {
                 await this.markPaid.execute(payload.orderId);
               } else if (topic === 'payment.failed') {
                 await this.markCancelled.execute(payload.orderId);
+              } else if (topic === 'payment.refund.success') {
+                await this.markRefunded.execute({
+                  orderId: payload.orderId,
+                  paymentStatus: payload.paymentStatus,
+                });
               }
             } catch (err) {
               this.logger.error(`Error handling ${topic} event`, err as Error);
@@ -53,7 +60,9 @@ export class PaymentEventsConsumer implements OnModuleInit, OnModuleDestroy {
           },
         });
         connected = true;
-        this.logger.log('Kafka consumer connected and subscribed to payment.success, payment.failed');
+        this.logger.log(
+          'Kafka consumer connected and subscribed to payment.success, payment.failed, payment.refund.success',
+        );
       } catch (err) {
         retryCount++;
         if (retryCount < maxRetries) {
@@ -66,7 +75,6 @@ export class PaymentEventsConsumer implements OnModuleInit, OnModuleDestroy {
           this.logger.error(
             `Kafka consumer connect failed after ${maxRetries} attempts: ${(err as Error).message}. Service will continue without Kafka consumer.`,
           );
-          // Không throw error để service vẫn có thể khởi động
         }
       }
     }

@@ -102,6 +102,19 @@ Script tổng hợp để khởi động services và test luồng Kafka.
   - **Publisher:** payment-service
   - **Consumers:** order-service, notification-service
 
+- `payment.refund.success` - Hoàn tiền thành công
+  - **Publisher:** payment-service
+  - **Consumers:** order-service
+
+### Shipping Events
+- `shipping.order.created` - Shipping order được tạo
+  - **Publisher:** shipping-service
+  - **Consumers:** (reserved)
+
+- `shipping.order.status.updated` - Trạng thái vận chuyển thay đổi
+  - **Publisher:** shipping-service
+  - **Consumers:** order-service
+
 ### Settlement Events
 - `settlement.balance.updated` - Cập nhật balance của seller
   - **Publisher:** settlement-service
@@ -150,6 +163,31 @@ Script tổng hợp để khởi động services và test luồng Kafka.
    ↓
 6. analytics-service (consume) → Update analytics
    warehouse-service (consume) → Update warehouse data
+```
+
+### Luồng Refund (Hoàn tiền)
+
+```
+1. Client gọi POST /payments/:id/refund
+   ↓
+2. payment-service xử lý refund qua provider
+   → Cập nhật payment status (REFUNDED / PARTIALLY_REFUNDED)
+   → Publish payment.refund.success (via outbox)
+   ↓
+3. order-service (consume payment.refund.success)
+   → Cập nhật order status: REFUND_PENDING → REFUNDED / PARTIALLY_REFUNDED
+```
+
+### Luồng Shipping → Order (Đồng bộ trạng thái vận chuyển)
+
+```
+1. shipping-service cập nhật tracking status
+   → Publish shipping.order.status.updated
+   ↓
+2. order-service (consume shipping.order.status.updated)
+   → CONFIRMED  → order SHIPPED
+   → DELIVERED  → order DELIVERED
+   → RETURNED   → order RETURN_RECEIVED
 ```
 
 ## 🧪 Test Luồng Kafka

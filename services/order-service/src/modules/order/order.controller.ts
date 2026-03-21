@@ -29,6 +29,7 @@ export class OrderController {
       voucherCode: dto.voucherCode,
       discountAmount: dto.discountAmount,
       shippingFee: dto.shippingFee,
+      paymentMethod: dto.paymentMethod,
     });
   }
 

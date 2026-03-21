@@ -12,5 +12,6 @@ export interface OrderCreatedEvent {
   totalAmount: number;
   orderGroupId?: string;
   voucherId?: string;
+  paymentMethod?: 'CARD' | 'EWALLET' | 'BANK_TRANSFER' | 'COD';
   items?: OrderItemForPayment[];
 }

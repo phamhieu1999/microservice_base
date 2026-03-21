@@ -4,7 +4,9 @@ import { PaymentRepository } from './payment.repository';
 import {
   PAYMENT_FAILED_TOPIC,
   PAYMENT_SUCCESS_TOPIC,
+  PAYMENT_REFUND_SUCCESS_TOPIC,
   PaymentFailedEvent,
+  PaymentRefundSuccessEvent,
   PaymentSuccessEvent,
   SellerShare,
 } from './events/payment-events';
@@ -35,10 +37,13 @@ export class PaymentService {
     userId: string;
     totalAmount: number;
     voucherId?: string;
+    paymentMethod?: 'CARD' | 'EWALLET' | 'BANK_TRANSFER' | 'COD';
     items?: Array<{ productId: string; quantity: number; unitPrice: number; sellerId?: string }>;
   }) {
-    const success = Math.random() > 0.2;
-    const providerTxnId = `mock-txn-${Date.now()}`;
+    const method = event.paymentMethod || 'CARD';
+    const isCod = method === 'COD';
+    const success = isCod ? true : Math.random() > 0.2;
+    const providerTxnId = `mock-${method.toLowerCase()}-${Date.now()}`;
 
     let sellerShares: SellerShare[] | undefined;
     if (success && event.items && Array.isArray(event.items)) {
@@ -64,7 +69,7 @@ export class PaymentService {
         orderId: event.id,
         amount: event.totalAmount,
         status: success ? 'SUCCESS' : 'FAILED',
-        method: 'CARD',
+        method,
         provider: 'MOCK',
         providerTxnId,
       });
@@ -136,17 +141,19 @@ export class PaymentService {
 
     const paymentProvider = this.providerFactory.getProvider(provider as PaymentProvider);
 
+    const paymentRequest = {
+      orderId: dto.orderId,
+      amount: dto.amount,
+      method: dto.method,
+      description: dto.description,
+      returnUrl: process.env.PAYMENT_RETURN_URL || 'http://localhost:3000/payment/callback',
+      cancelUrl: process.env.PAYMENT_CANCEL_URL || 'http://localhost:3000/payment/cancel',
+    };
+
     const response = this.circuitBreaker
       ? await this.circuitBreaker.execute(
           `payment-provider-${provider}`,
-          () =>
-            paymentProvider.createPayment({
-              orderId: dto.orderId,
-              amount: dto.amount,
-              description: dto.description,
-              returnUrl: process.env.PAYMENT_RETURN_URL || 'http://localhost:3000/payment/callback',
-              cancelUrl: process.env.PAYMENT_CANCEL_URL || 'http://localhost:3000/payment/cancel',
-            }),
+          () => paymentProvider.createPayment(paymentRequest),
           async () => ({
             success: false,
             paymentId: dto.orderId,
@@ -158,18 +165,41 @@ export class PaymentService {
             resetTimeout: 60000,
           },
         )
-      : await paymentProvider.createPayment({
-          orderId: dto.orderId,
-          amount: dto.amount,
-          description: dto.description,
-          returnUrl: process.env.PAYMENT_RETURN_URL || 'http://localhost:3000/payment/callback',
-          cancelUrl: process.env.PAYMENT_CANCEL_URL || 'http://localhost:3000/payment/cancel',
+      : await paymentProvider.createPayment(paymentRequest);
+
+    if (!response.success) {
+      await this.repo.markFailed(payment.id, undefined, response.error);
+      return { payment, paymentUrl: response.paymentUrl, qrCode: response.qrCode };
+    }
+
+    if (dto.method === 'COD') {
+      await this.outbox.executeInTransaction(async (manager) => {
+        const paymentRepo = manager.getRepository(Payment);
+        await paymentRepo.update(payment.id, {
+          status: 'SUCCESS',
+          providerTxnId: response.providerTxnId,
+          providerResponse: JSON.stringify({ method: 'COD', note: 'Thu tiền khi giao hàng' }),
         });
 
-    if (response.success && response.providerTxnId) {
-      await this.repo.updateStatus(payment.id, 'PENDING', JSON.stringify(response));
+        const successEvent: PaymentSuccessEvent = {
+          orderId: payment.orderId,
+          paymentId: payment.id,
+          amount: Number(payment.amount),
+          userId,
+        };
+        await this.outbox.saveEvent(
+          {
+            aggregateType: 'Payment',
+            aggregateId: payment.id,
+            topic: PAYMENT_SUCCESS_TOPIC,
+            payload: successEvent as unknown as Record<string, unknown>,
+          },
+          manager,
+        );
+      });
+      payment.status = 'SUCCESS';
     } else {
-      await this.repo.markFailed(payment.id, undefined, response.error);
+      await this.repo.updateStatus(payment.id, 'PENDING', JSON.stringify(response));
     }
 
     return {
@@ -246,11 +276,12 @@ export class PaymentService {
       throw new NotFoundException('Payment not found');
     }
 
-    if (payment.status !== 'SUCCESS') {
-      throw new BadRequestException('Only successful payments can be refunded');
+    if (payment.status !== 'SUCCESS' && payment.status !== 'PARTIALLY_REFUNDED') {
+      throw new BadRequestException('Only successful or partially-refunded payments can be refunded');
     }
 
-    if (payment.refundedAmount && payment.refundedAmount + dto.amount > payment.amount) {
+    const currentRefunded = Number(payment.refundedAmount || 0);
+    if (currentRefunded + dto.amount > Number(payment.amount)) {
       throw new BadRequestException('Refund amount exceeds payment amount');
     }
 
@@ -275,11 +306,39 @@ export class PaymentService {
           reason: dto.reason,
         });
 
-    if (refundResponse.success) {
-      await this.repo.refund(payment.id, dto.amount);
-    } else {
+    if (!refundResponse.success) {
       throw new BadRequestException(refundResponse.error || 'Refund failed');
     }
+
+    const newRefundedAmount = currentRefunded + dto.amount;
+    const newPaymentStatus: 'REFUNDED' | 'PARTIALLY_REFUNDED' =
+      newRefundedAmount >= Number(payment.amount) ? 'REFUNDED' : 'PARTIALLY_REFUNDED';
+
+    await this.outbox.executeInTransaction(async (manager) => {
+      const paymentRepo = manager.getRepository(Payment);
+      await paymentRepo.update(payment.id, {
+        refundedAmount: newRefundedAmount,
+        status: newPaymentStatus,
+      });
+
+      const refundEvent: PaymentRefundSuccessEvent = {
+        orderId: payment.orderId,
+        paymentId: payment.id,
+        refundAmount: dto.amount,
+        totalRefundedAmount: newRefundedAmount,
+        paymentStatus: newPaymentStatus,
+      };
+
+      await this.outbox.saveEvent(
+        {
+          aggregateType: 'Payment',
+          aggregateId: payment.id,
+          topic: PAYMENT_REFUND_SUCCESS_TOPIC,
+          payload: refundEvent as unknown as Record<string, unknown>,
+        },
+        manager,
+      );
+    });
 
     return { success: true, refundId: refundResponse.refundId };
   }

@@ -47,6 +47,22 @@ topics:
     partitions: 3
     replication-factor: 1
 
+  - name: payment.refund.success
+    partitions: 2
+    replication-factor: 1
+
+  - name: shipping.order.created
+    partitions: 2
+    replication-factor: 1
+
+  - name: shipping.order.status.updated
+    partitions: 2
+    replication-factor: 1
+
+  - name: order.cancelled
+    partitions: 3
+    replication-factor: 1
+
   - name: dlq.failed-messages
     partitions: 2
     replication-factor: 1

@@ -7,14 +7,14 @@ export interface PaymentSuccessEvent {
   orderId: string;
   paymentId: string;
   amount: number;
-  userId?: string; // để notification service tạo notification cho đúng user
-  sellerShares?: SellerShare[]; // phân bổ số tiền cho từng seller (multi-seller)
+  userId?: string;
+  sellerShares?: SellerShare[];
 }
 
 export interface PaymentFailedEvent {
   orderId: string;
   reason?: string;
-  userId?: string; // để notification service tạo notification cho đúng user
+  userId?: string;
 }
 
 export interface PaymentRefundSuccessEvent {
@@ -29,5 +29,3 @@ export interface PaymentRefundSuccessEvent {
 export const PAYMENT_SUCCESS_TOPIC = 'payment.success';
 export const PAYMENT_FAILED_TOPIC = 'payment.failed';
 export const PAYMENT_REFUND_SUCCESS_TOPIC = 'payment.refund.success';
-
-

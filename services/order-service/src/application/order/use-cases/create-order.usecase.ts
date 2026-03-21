@@ -18,6 +18,7 @@ export interface CreateOrderInput {
   voucherCode?: string;
   discountAmount?: number;
   shippingFee?: number;
+  paymentMethod?: 'CARD' | 'EWALLET' | 'BANK_TRANSFER' | 'COD';
 }
 
 @Injectable()
@@ -91,6 +92,7 @@ export class CreateOrderUseCase {
         status: 'PENDING',
         orderGroupId: input.orderGroupId,
         voucherId: input.voucherId,
+        paymentMethod: input.paymentMethod,
         discountAmount: input.discountAmount,
         shippingFee: input.shippingFee,
         items: input.items.map((i) =>
@@ -111,6 +113,7 @@ export class CreateOrderUseCase {
         totalAmount: Number(savedOrm.totalAmount),
         orderGroupId: savedOrm.orderGroupId,
         voucherId: savedOrm.voucherId,
+        paymentMethod: input.paymentMethod,
         sellerId: firstSellerId,
         items: input.items.map((item) => ({
           productId: item.productId,

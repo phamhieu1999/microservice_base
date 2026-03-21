@@ -1,6 +1,7 @@
 export interface PaymentRequest {
   orderId: string;
   amount: number;
+  method?: 'CARD' | 'EWALLET' | 'BANK_TRANSFER' | 'COD';
   currency?: string;
   description?: string;
   returnUrl?: string;

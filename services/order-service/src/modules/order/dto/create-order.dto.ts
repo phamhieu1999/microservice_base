@@ -1,4 +1,4 @@
-import { IsArray, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import { IsArray, IsEnum, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class OrderItemDto {
@@ -44,6 +44,10 @@ export class CreateOrderDto {
   @IsOptional()
   @IsNumber()
   shippingFee?: number;
+
+  @IsOptional()
+  @IsEnum(['CARD', 'EWALLET', 'BANK_TRANSFER', 'COD'])
+  paymentMethod?: 'CARD' | 'EWALLET' | 'BANK_TRANSFER' | 'COD';
 }
 
 
